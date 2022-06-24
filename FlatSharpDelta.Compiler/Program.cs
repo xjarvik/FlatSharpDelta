@@ -12,32 +12,28 @@ namespace FlatSharpDelta.Compiler
     {
         static int Main(string[] args)
         {
-            int exitCode = -1;
+            CompilerOptions compilerOptions = null;
+            Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed<CompilerOptions>(c => compilerOptions = c);
 
-            Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed<CompilerOptions>(compilerOptions =>
+            try
             {
-                string[] inputFiles;
-                string outputDirectory;
-
-                try
+                RunCompiler(new CompilerStartInfo
                 {
-                    ProcessInput(compilerOptions.Input, out inputFiles);
-                    ProcessOutput(compilerOptions.Output, out outputDirectory);
-                }
-                catch(FlatSharpDeltaException exception)
-                {
-                    Console.Error.WriteLine(exception.Message);
-                    exitCode = -1;
-                    return;
-                }
+                    InputFiles = GetInputFiles(compilerOptions.Input),
+                    OutputDirectory = GetOutputDirectory(compilerOptions.Output),
+                    CompilerFile = GetCompilerFile(compilerOptions.Compiler)
+                });
+            }
+            catch(FlatSharpDeltaException exception)
+            {
+                Console.Error.WriteLine(exception.Message);
+                return -1;
+            }
 
-                exitCode = 0;
-            });
-
-            return exitCode;
+            return 0;
         }
 
-        static void ProcessInput(string input, out string[] inputFiles)
+        static string[] GetInputFiles(string input)
         {
             string sanitizedInputPath = GetSanitizedPath(input);
             string inputDirectory;
@@ -69,10 +65,10 @@ namespace FlatSharpDelta.Compiler
             {
                 throw new FlatSharpDeltaException($"{input} is not a valid path.");
             }
-            inputFiles = files.Select(f => GetSanitizedPath(Path.GetFullPath(f))).ToArray();
+            return files.Select(f => GetSanitizedPath(Path.GetFullPath(f))).ToArray();
         }
 
-        static void ProcessOutput(string output, out string outputDirectory)
+        static string GetOutputDirectory(string output)
         {
             string sanitizedOutputPath = GetSanitizedPath(output);
 
@@ -81,7 +77,19 @@ namespace FlatSharpDelta.Compiler
                 throw new FlatSharpDeltaException($"{output} is not a valid directory.");
             }
 
-            outputDirectory = GetSanitizedPath(Path.GetFullPath(sanitizedOutputPath));
+            return GetSanitizedPath(Path.GetFullPath(sanitizedOutputPath));
+        }
+
+        static string GetCompilerFile(string compiler)
+        {
+            string sanitizedCompilerPath = GetSanitizedPath(compiler);
+
+            if(!File.Exists(sanitizedCompilerPath))
+            {
+                throw new FlatSharpDeltaException($"{compiler} is not a valid compiler.");
+            }
+
+            return GetSanitizedPath(Path.GetFullPath(sanitizedCompilerPath));
         }
 
         static string GetSanitizedPath(string path)
@@ -98,8 +106,7 @@ namespace FlatSharpDelta.Compiler
         {
             try
             {
-                FileAttributes attributes = File.GetAttributes(path);
-                if(attributes.HasFlag(FileAttributes.Directory))
+                if(File.GetAttributes(path).HasFlag(FileAttributes.Directory))
                 {
                     return true;
                 }
@@ -109,6 +116,11 @@ namespace FlatSharpDelta.Compiler
             {
                 return false;
             }
+        }
+
+        static void RunCompiler(CompilerStartInfo startInfo)
+        {
+            
         }
     }
 }
