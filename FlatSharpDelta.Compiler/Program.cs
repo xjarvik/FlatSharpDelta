@@ -2,8 +2,10 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Linq;
-using FlatSharp;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using CommandLine;
+using FlatSharp;
 using reflection;
 
 namespace FlatSharpDelta.Compiler
@@ -21,7 +23,7 @@ namespace FlatSharpDelta.Compiler
                 {
                     InputFiles = GetInputFiles(compilerOptions.Input),
                     OutputDirectory = GetOutputDirectory(compilerOptions.Output),
-                    CompilerFile = GetCompilerFile(compilerOptions.Compiler)
+                    BaseCompilerFile = GetBaseCompilerFile(compilerOptions.BaseCompiler)
                 });
             }
             catch(FlatSharpDeltaException exception)
@@ -33,7 +35,7 @@ namespace FlatSharpDelta.Compiler
             return 0;
         }
 
-        static string[] GetInputFiles(string input)
+        static FileInfo[] GetInputFiles(string input)
         {
             string sanitizedInputPath = GetSanitizedPath(input);
             string inputDirectory;
@@ -65,10 +67,10 @@ namespace FlatSharpDelta.Compiler
             {
                 throw new FlatSharpDeltaException($"{input} is not a valid path.");
             }
-            return files.Select(f => GetSanitizedPath(Path.GetFullPath(f))).ToArray();
+            return files.Select(f => new FileInfo(f)).ToArray();
         }
 
-        static string GetOutputDirectory(string output)
+        static DirectoryInfo GetOutputDirectory(string output)
         {
             string sanitizedOutputPath = GetSanitizedPath(output);
 
@@ -77,19 +79,19 @@ namespace FlatSharpDelta.Compiler
                 throw new FlatSharpDeltaException($"{output} is not a valid directory.");
             }
 
-            return GetSanitizedPath(Path.GetFullPath(sanitizedOutputPath));
+            return new DirectoryInfo(sanitizedOutputPath);
         }
 
-        static string GetCompilerFile(string compiler)
+        static FileInfo GetBaseCompilerFile(string baseCompiler)
         {
-            string sanitizedCompilerPath = GetSanitizedPath(compiler);
+            string sanitizedBaseCompilerPath = GetSanitizedPath(baseCompiler);
 
-            if(!File.Exists(sanitizedCompilerPath))
+            if(!File.Exists(sanitizedBaseCompilerPath))
             {
-                throw new FlatSharpDeltaException($"{compiler} is not a valid compiler.");
+                throw new FlatSharpDeltaException($"{baseCompiler} is not a valid FlatSharp compiler.");
             }
 
-            return GetSanitizedPath(Path.GetFullPath(sanitizedCompilerPath));
+            return new FileInfo(sanitizedBaseCompilerPath);
         }
 
         static string GetSanitizedPath(string path)
@@ -120,7 +122,87 @@ namespace FlatSharpDelta.Compiler
 
         static void RunCompiler(CompilerStartInfo startInfo)
         {
-            
+            Directory.CreateDirectory("temp");
+
+            foreach(FileInfo inputFile in startInfo.InputFiles)
+            {
+                RunFlatc(new string[]
+                {
+                    "-b",
+                    "--schema",
+                    "--bfbs-comments",
+                    "--bfbs-builtins",
+                    "--bfbs-filenames",
+                    inputFile.DirectoryName,
+                    "--no-warnings",
+                    "-o",
+                    "temp",
+                    inputFile.FullName
+                });
+
+                FileInfo bfbsFile = new FileInfo("temp/" + Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs");
+                Schema originalSchema = Schema.Serializer.Parse(File.ReadAllBytes(bfbsFile.FullName));
+
+                File.Delete(bfbsFile.FullName);
+            }
+        }
+
+        static void RunFlatc(string[] args)
+        {
+            string path;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                path = "flatc/flatc-windows.exe";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                path = "flatc/flatc-macos";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                path = "flatc/flatc-linux";
+            }
+            else
+            {
+                throw new FlatSharpDeltaException("FlatSharpDelta compiler is not supported on this operating system.");
+            }
+
+            Process process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = path
+                }
+            };
+
+            foreach(string arg in args)
+            {
+                process.StartInfo.ArgumentList.Add(arg);
+            }
+
+            process.Start();
+            process.WaitForExit();
+        }
+
+        static void RunBaseCompiler(string path, string[] args)
+        {
+            Process process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "dotnet"
+                }
+            };
+
+            process.StartInfo.ArgumentList.Add(path);
+            foreach(string arg in args)
+            {
+                process.StartInfo.ArgumentList.Add(arg);
+            }
+
+            process.Start();
+            process.WaitForExit();
         }
     }
 }

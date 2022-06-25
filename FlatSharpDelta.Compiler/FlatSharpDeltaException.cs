@@ -1,6 +1,6 @@
 using System;
 
-namespace FlatSharpDelta.Compiler
+namespace FlatSharpDelta
 {
     public class FlatSharpDeltaException : Exception
     {
