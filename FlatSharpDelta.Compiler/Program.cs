@@ -141,7 +141,9 @@ namespace FlatSharpDelta.Compiler
                 });
 
                 FileInfo bfbsFile = new FileInfo("temp/" + Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs");
+                
                 Schema originalSchema = Schema.Serializer.Parse(File.ReadAllBytes(bfbsFile.FullName));
+                Schema baseSchema = BaseSchemaFactory.GetBaseSchema(originalSchema);
 
                 File.Delete(bfbsFile.FullName);
             }
