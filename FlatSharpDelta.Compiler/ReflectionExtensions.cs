@@ -7,6 +7,27 @@ namespace FlatSharpDelta.Compiler
 {
     static class ReflectionExtensions
     {
+        // reflection.Schema
+
+        public static void ReplaceMatchingDeclarationFiles(this Schema schema, string declarationFileToMatch, string replacementDeclarationFile)
+        {
+            foreach(reflection.Object obj in schema.objects)
+            {
+                obj.ReplaceMatchingDeclarationFile(declarationFileToMatch, replacementDeclarationFile);
+            }
+
+            foreach(reflection.Enum _enum in schema.enums)
+            {
+                _enum.ReplaceMatchingDeclarationFile(declarationFileToMatch, replacementDeclarationFile);
+            }
+
+            foreach(Service service in schema.services)
+            {
+                service.ReplaceMatchingDeclarationFile(declarationFileToMatch, replacementDeclarationFile);
+            }
+        }
+
+
         // reflection.Object
 
         public static bool HasAttribute(this reflection.Object obj, string key) => obj.attributes != null && obj.attributes.Any(kv => kv.key == key);
@@ -37,6 +58,14 @@ namespace FlatSharpDelta.Compiler
         public static string GetNamespace(this reflection.Object obj) => obj.name.Substring(0, obj.name.LastIndexOf("."));
 
         public static string GetNameWithoutNamespace(this reflection.Object obj) => obj.name.Substring(obj.name.LastIndexOf(".") + 1);
+
+        public static void ReplaceMatchingDeclarationFile(this reflection.Object obj, string declarationFileToMatch, string replacementDeclarationFile)
+        {
+            if(obj.declaration_file == declarationFileToMatch)
+            {
+                obj.declaration_file = replacementDeclarationFile;
+            }
+        }
         
 
         // reflection.Enum
@@ -44,6 +73,14 @@ namespace FlatSharpDelta.Compiler
         public static string GetNamespace(this reflection.Enum _enum) => _enum.name.Substring(0, _enum.name.LastIndexOf("."));
 
         public static string GetNameWithoutNamespace(this reflection.Enum _enum) => _enum.name.Substring(_enum.name.LastIndexOf(".") + 1);
+
+        public static void ReplaceMatchingDeclarationFile(this reflection.Enum _enum, string declarationFileToMatch, string replacementDeclarationFile)
+        {
+            if(_enum.declaration_file == declarationFileToMatch)
+            {
+                _enum.declaration_file = replacementDeclarationFile;
+            }
+        }
 
 
         // reflection.Field
@@ -70,6 +107,17 @@ namespace FlatSharpDelta.Compiler
                     key = key,
                     value = value
                 });
+            }
+        }
+
+
+        // reflection.Service
+
+        public static void ReplaceMatchingDeclarationFile(this Service service, string declarationFileToMatch, string replacementDeclarationFile)
+        {
+            if(service.declaration_file == declarationFileToMatch)
+            {
+                service.declaration_file = replacementDeclarationFile;
             }
         }
     }

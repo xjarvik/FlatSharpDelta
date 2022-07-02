@@ -122,30 +122,50 @@ namespace FlatSharpDelta.Compiler
 
         static void RunCompiler(CompilerStartInfo startInfo)
         {
-            Directory.CreateDirectory("temp");
+            string tempDir = Path.Combine(Path.GetTempPath(), $"flatsharpdeltacompiler_temp_{Guid.NewGuid():n}");
+            Directory.CreateDirectory(tempDir);
 
-            foreach(FileInfo inputFile in startInfo.InputFiles)
+            try
             {
-                RunFlatc(new string[]
+                foreach(FileInfo inputFile in startInfo.InputFiles)
                 {
-                    "-b",
-                    "--schema",
-                    "--bfbs-comments",
-                    "--bfbs-builtins",
-                    "--bfbs-filenames",
-                    inputFile.DirectoryName,
-                    "--no-warnings",
-                    "-o",
-                    "temp",
-                    inputFile.FullName
-                });
+                    RunFlatc(new string[]
+                    {
+                        "-b",
+                        "--schema",
+                        "--bfbs-comments",
+                        "--bfbs-builtins",
+                        "--bfbs-filenames", inputFile.DirectoryName,
+                        "--no-warnings",
+                        "-o", tempDir,
+                        inputFile.FullName
+                    });
 
-                FileInfo bfbsFile = new FileInfo("temp/" + Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs");
-                
-                Schema originalSchema = Schema.Serializer.Parse(File.ReadAllBytes(bfbsFile.FullName));
-                Schema baseSchema = BaseSchemaFactory.GetBaseSchema(originalSchema);
+                    string bfbsFilePath = Path.Combine(tempDir, Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs");
 
-                File.Delete(bfbsFile.FullName);
+                    Schema originalSchema = Schema.Serializer.Parse(File.ReadAllBytes(bfbsFilePath));
+                    Schema baseSchema = BaseSchemaFactory.GetBaseSchema(originalSchema);
+                    
+                    baseSchema.ReplaceMatchingDeclarationFiles(
+                        "//" + inputFile.Name,
+                        "//" + Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs"
+                    );
+
+                    byte[] baseBfbs = new byte[Schema.Serializer.GetMaxSize(baseSchema)];
+                    Schema.Serializer.Write(baseBfbs, baseSchema);
+                    File.WriteAllBytes(bfbsFilePath, baseBfbs);
+
+                    RunBaseCompiler(startInfo.BaseCompilerFile.FullName, new string[]
+                    {
+                        "-i", bfbsFilePath,
+                        "-o", startInfo.OutputDirectory.FullName,
+                        "--flatc-path", "./" + GetFakeFlatcPath()
+                    });
+                }
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
             }
         }
 
@@ -205,6 +225,22 @@ namespace FlatSharpDelta.Compiler
 
             process.Start();
             process.WaitForExit();
+        }
+
+        static string GetFakeFlatcPath()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return "flatc/fake-flatc-windows.cmd";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return "flatc/fake-flatc-unix.sh";
+            }
+            else
+            {
+                throw new FlatSharpDeltaException("FlatSharpDelta compiler is not supported on this operating system.");
+            }
         }
     }
 }
