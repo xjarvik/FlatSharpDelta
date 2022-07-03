@@ -14,6 +14,8 @@ namespace FlatSharpDelta.Compiler
     {
         static int Main(string[] args)
         {
+            int exitCode = -1;
+
             CompilerOptions compilerOptions = null;
             Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed<CompilerOptions>(c => compilerOptions = c);
 
@@ -25,14 +27,14 @@ namespace FlatSharpDelta.Compiler
                     OutputDirectory = GetOutputDirectory(compilerOptions.Output),
                     BaseCompilerFile = GetBaseCompilerFile(compilerOptions.BaseCompiler)
                 });
+                exitCode = 0;
             }
-            catch(FlatSharpDeltaException exception)
+            catch(Exception exception)
             {
                 Console.Error.WriteLine(exception.Message);
-                return -1;
             }
 
-            return 0;
+            return exitCode;
         }
 
         static FileInfo[] GetInputFiles(string input)
@@ -129,7 +131,7 @@ namespace FlatSharpDelta.Compiler
             {
                 foreach(FileInfo inputFile in startInfo.InputFiles)
                 {
-                    RunFlatc(new string[]
+                    int flatcExitCode = RunFlatc(new string[]
                     {
                         "-b",
                         "--schema",
@@ -140,6 +142,13 @@ namespace FlatSharpDelta.Compiler
                         "-o", tempDir,
                         inputFile.FullName
                     });
+
+                    if(flatcExitCode != 0)
+                    {
+                        throw new FlatSharpDeltaException(
+                            "FlatSharpDelta compiler was interrupted because flatc returned an error."
+                        );
+                    }
 
                     string bfbsFilePath = Path.Combine(tempDir, Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs");
 
@@ -155,12 +164,19 @@ namespace FlatSharpDelta.Compiler
                     Schema.Serializer.Write(baseBfbs, baseSchema);
                     File.WriteAllBytes(bfbsFilePath, baseBfbs);
 
-                    RunBaseCompiler(startInfo.BaseCompilerFile.FullName, new string[]
+                    int baseCompilerExitCode = RunBaseCompiler(startInfo.BaseCompilerFile.FullName, new string[]
                     {
                         "-i", bfbsFilePath,
                         "-o", startInfo.OutputDirectory.FullName,
                         "--flatc-path", "./" + GetFakeFlatcPath()
                     });
+
+                    if(baseCompilerExitCode != 0)
+                    {
+                        throw new FlatSharpDeltaException(
+                            "FlatSharpDelta compiler was interrupted because the base FlatSharp compiler returned an error."
+                        );
+                    }
                 }
             }
             finally
@@ -169,7 +185,7 @@ namespace FlatSharpDelta.Compiler
             }
         }
 
-        static void RunFlatc(string[] args)
+        static int RunFlatc(string[] args)
         {
             string path;
 
@@ -205,9 +221,11 @@ namespace FlatSharpDelta.Compiler
 
             process.Start();
             process.WaitForExit();
+
+            return process.ExitCode;
         }
 
-        static void RunBaseCompiler(string path, string[] args)
+        static int RunBaseCompiler(string path, string[] args)
         {
             Process process = new Process
             {
@@ -225,6 +243,8 @@ namespace FlatSharpDelta.Compiler
 
             process.Start();
             process.WaitForExit();
+
+            return process.ExitCode;
         }
 
         static string GetFakeFlatcPath()
