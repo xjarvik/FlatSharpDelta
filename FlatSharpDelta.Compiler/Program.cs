@@ -16,17 +16,29 @@ namespace FlatSharpDelta.Compiler
         {
             int exitCode = -1;
 
-            CompilerOptions compilerOptions = null;
-            Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed<CompilerOptions>(c => compilerOptions = c);
-
             try
             {
-                RunCompiler(new CompilerStartInfo
+                Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed<CompilerOptions>(compilerOptions =>
                 {
-                    InputFiles = GetInputFiles(compilerOptions.Input),
-                    OutputDirectory = GetOutputDirectory(compilerOptions.Output),
-                    BaseCompilerFile = GetBaseCompilerFile(compilerOptions.BaseCompiler)
+                    string baseCompiler = compilerOptions.BaseCompiler
+                    ??
+                    Path.Combine
+                    (
+                        Path.GetDirectoryName(typeof(Program).Assembly.Location),
+                        "FlatSharp.Compiler",
+                        "FlatSharp.Compiler.dll"
+                    );
+
+                    CompilerStartInfo compilerStartInfo = new CompilerStartInfo
+                    {
+                        InputFiles = GetInputFiles(compilerOptions.Input),
+                        OutputDirectory = GetOutputDirectory(compilerOptions.Output),
+                        BaseCompilerFile = GetBaseCompilerFile(baseCompiler)
+                    };
+
+                    RunCompiler(compilerStartInfo);
                 });
+                
                 exitCode = 0;
             }
             catch(Exception exception)
@@ -145,7 +157,8 @@ namespace FlatSharpDelta.Compiler
 
                     if(flatcExitCode != 0)
                     {
-                        throw new FlatSharpDeltaException(
+                        throw new FlatSharpDeltaException
+                        (
                             "FlatSharpDelta compiler was interrupted because flatc returned an error."
                         );
                     }
@@ -155,7 +168,8 @@ namespace FlatSharpDelta.Compiler
                     Schema originalSchema = Schema.Serializer.Parse(File.ReadAllBytes(bfbsFilePath));
                     Schema baseSchema = BaseSchemaFactory.GetBaseSchema(originalSchema);
                     
-                    baseSchema.ReplaceMatchingDeclarationFiles(
+                    baseSchema.ReplaceMatchingDeclarationFiles
+                    (
                         "//" + inputFile.Name,
                         "//" + Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs"
                     );
@@ -173,7 +187,8 @@ namespace FlatSharpDelta.Compiler
 
                     if(baseCompilerExitCode != 0)
                     {
-                        throw new FlatSharpDeltaException(
+                        throw new FlatSharpDeltaException
+                        (
                             "FlatSharpDelta compiler was interrupted because the base FlatSharp compiler returned an error."
                         );
                     }
@@ -187,30 +202,38 @@ namespace FlatSharpDelta.Compiler
 
         static int RunFlatc(string[] args)
         {
-            string path;
+            string os;
+            string name;
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                path = "flatc/flatc-windows.exe";
+                os = "windows";
+                name = "flatc.exe";
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                path = "flatc/flatc-macos";
+                os = "macos";
+                name = "flatc";
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                path = "flatc/flatc-linux";
+                os = "linux";
+                name = "flatc";
             }
             else
             {
                 throw new FlatSharpDeltaException("FlatSharpDelta compiler is not supported on this operating system.");
             }
 
+            string currentProcess = typeof(Program).Assembly.Location;
+            string currentDirectory = Path.GetDirectoryName(currentProcess);
+            string flatcPath = Path.Combine(currentDirectory, "FlatSharp.Compiler", "flatc", os, name);
+
             Process process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = path
+                    FileName = flatcPath
                 }
             };
 
@@ -249,18 +272,27 @@ namespace FlatSharpDelta.Compiler
 
         static string GetFakeFlatcPath()
         {
+            string shell;
+            string name;
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                return "flatc/fake-flatc-windows.cmd";
+                shell = "cmd";
+                name = "fake-flatc.cmd";
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                return "flatc/fake-flatc-unix.sh";
+                shell = "bash";
+                name = "fake-flatc.sh";
             }
             else
             {
                 throw new FlatSharpDeltaException("FlatSharpDelta compiler is not supported on this operating system.");
             }
+
+            string currentProcess = typeof(Program).Assembly.Location;
+            string currentDirectory = Path.GetDirectoryName(currentProcess);
+            return Path.GetRelativePath(currentDirectory, Path.Combine(currentDirectory, "fake-flatc", shell, name));
         }
     }
 }
