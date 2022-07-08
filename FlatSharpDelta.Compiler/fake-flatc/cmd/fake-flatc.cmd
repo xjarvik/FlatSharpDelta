@@ -16,4 +16,4 @@ goto initial
 
 for %%a in (%*) do set last=%%a
 
-copy %last% %o%
+copy "%last%" "%o%"

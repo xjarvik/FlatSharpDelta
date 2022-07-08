@@ -14,4 +14,4 @@ done
 
 for last; do true; done
 
-cp $last -t $o
+cp "$last" -t "$o"

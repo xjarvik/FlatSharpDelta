@@ -4,7 +4,7 @@ using reflection;
 
 namespace FlatSharpDelta.Compiler
 {
-    class BaseSchemaFactory
+    static class BaseSchemaFactory
     {
         public static Schema GetBaseSchema(Schema originalSchema)
         {
