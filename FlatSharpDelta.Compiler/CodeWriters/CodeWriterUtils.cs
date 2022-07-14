@@ -152,7 +152,164 @@ namespace FlatSharpDelta.Compiler
             return listType;
         }
 
-        public static bool PropertyRequiresPrivateMember(Schema schema, Field field)
+        public static string GetPropertyBaseType(Schema schema, Field field)
+        {
+            string baseType = GetPropertyType(schema, field);
+
+            if(field.type.base_type == BaseType.Obj
+            || field.type.base_type == BaseType.Union
+            || field.type.base_type == BaseType.UType)
+            {
+                baseType = "Base" + baseType;
+            }
+
+            return baseType;
+        }
+
+        public static string GetPropertyBaseListType(Schema schema, Field field)
+        {
+            string baseType = GetPropertyBaseType(schema, field);
+
+            if(field.type.base_type == BaseType.Obj
+            || field.type.base_type == BaseType.Union
+            || field.type.base_type == BaseType.UType)
+            {
+                baseType = baseType.TrimEnd('?');
+            }
+
+            return $"IReadOnlyList<{baseType}>?";
+        }
+
+        public static string GetPropertyDeltaType(Schema schema, Field field)
+        {
+            string deltaType;
+
+            switch(field.type.base_type)
+            {
+                case BaseType.Obj:
+                    deltaType = schema.objects[field.type.index].name + "Delta?";
+                    break;
+
+                case BaseType.Union:
+                case BaseType.UType:
+                    deltaType = schema.enums[field.type.index].name + "Delta?";
+                    break;
+
+                default:
+                    return null;
+            }
+
+            return deltaType;
+        }
+
+        public static string GetPropertyDeltaListType(Schema schema, Field field)
+        {
+            string listDeltaType;
+
+            switch(field.type.element)
+            {
+                case BaseType.Bool:
+                    listDeltaType = "BoolListDelta";
+                    break;
+
+                case BaseType.Byte:
+                    listDeltaType = "ByteListDelta";
+                    break;
+
+                case BaseType.UByte:
+                    listDeltaType = "UByteListDelta";
+                    break;
+
+                case BaseType.Short:
+                    listDeltaType = "ShortListDelta";
+                    break;
+
+                case BaseType.UShort:
+                    listDeltaType = "UShortListDelta";
+                    break;
+
+                case BaseType.Int:
+                    listDeltaType = "IntListDelta";
+                    break;
+
+                case BaseType.UInt:
+                    listDeltaType = "UIntListDelta";
+                    break;
+
+                case BaseType.Long:
+                    listDeltaType = "LongListDelta";
+                    break;
+
+                case BaseType.ULong:
+                    listDeltaType = "ULongListDelta";
+                    break;
+
+                case BaseType.Float:
+                    listDeltaType = "FloatListDelta";
+                    break;
+
+                case BaseType.Double:
+                    listDeltaType = "DoubleListDelta";
+                    break;
+
+                case BaseType.String:
+                    listDeltaType = "StringListDelta";
+                    break;
+
+                case BaseType.Obj:
+                    listDeltaType = schema.objects[field.type.index].name + "ListDelta";
+                    break;
+
+                case BaseType.Union:
+                case BaseType.UType:
+                    listDeltaType = schema.enums[field.type.index].name + "ListDelta";
+                    break;
+
+                default:
+                    return null;
+            }
+
+            return $"IReadOnlyList<{listDeltaType}>?";
+        }
+
+        public static string GetPropertyDefaultValue(Schema schema, Field field)
+        {
+            if(field.optional)
+            {
+                return "null";
+            }
+
+            switch(field.type.base_type)
+            {
+                case BaseType.Bool:
+                    return field.default_integer > 0 ? "true" : "false";
+
+                case BaseType.Byte:
+                case BaseType.UByte:
+                case BaseType.Short:
+                case BaseType.UShort:
+                case BaseType.Int:
+                case BaseType.UInt:
+                case BaseType.Long:
+                case BaseType.ULong:
+                    return field.default_integer.ToString();
+
+                case BaseType.Float:
+                    return field.default_real.ToString() + "f";
+
+                case BaseType.Double:
+                    return field.default_real.ToString() + "d";
+
+                case BaseType.Union:
+                case BaseType.UType:
+                    return !schema.enums[field.type.index].is_union ? field.default_integer.ToString() : "null";
+
+                default:
+                    return "null";
+            }
+        }
+
+        public static bool PropertyTypeIsDerived(Schema schema, Field field)
         {
             switch(field.type.base_type)
             {
