@@ -101,7 +101,7 @@ namespace {_namespace}
                     CodeWriterUtils.GetPropertyType(schema, field) :
                     CodeWriterUtils.GetPropertyListType(schema, field);
                 bool privateMember = CodeWriterUtils.PropertyTypeIsDerived(schema, field);
-                bool isUnion = field.type.base_type == BaseType.Union || field.type.base_type == BaseType.UType;
+                bool isUnion = field.type.base_type == BaseType.Union;
 
                 properties += $@"
         {(privateMember ? $"private new {type} _{field.name};" : String.Empty)}
@@ -192,19 +192,28 @@ namespace {_namespace}
         {
             string name = obj.GetNameWithoutNamespace();
             string deltaComparisons = String.Empty;
+            int offset = 0;
 
             for(int i = 0; i < obj.fields.Count; i++)
             {
                 Field field = obj.fields[i];
+                int index = i + offset;
                 bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
+                bool isUnion = field.type.base_type == BaseType.Union;
 
                 if(!CodeWriterUtils.PropertyTypeIsDerived(schema, field))
                 {
-                    deltaComparisons += GetScalarDeltaComparison(schema, field, i);
+                    deltaComparisons += GetScalarDeltaComparison(schema, field, index);
                 }
                 else if(field.type.base_type == BaseType.Obj || isArray)
                 {
-                    deltaComparisons += GetObjectDeltaComparison(schema, field, i);
+                    deltaComparisons += GetObjectDeltaComparison(schema, field, index);
+                    offset++;
+                }
+                else if(isUnion)
+                {
+                    deltaComparisons += GetUnionDeltaComparison(schema, field, index);
+                    offset++;
                 }
             }
 
@@ -224,19 +233,31 @@ namespace {_namespace}
             ";
         }
 
-        private static string GetScalarDeltaComparison(Schema schema, Field field, int fieldIndex)
+        private static string GetScalarDeltaComparison(Schema schema, Field field, int fieldIndex, EnumVal enumVal = null)
         {
+            reflection.Type type = enumVal != null ? enumVal.union_type : field.type;
             bool isValueStruct = false;
 
-            if(field.type.base_type == BaseType.Obj)
+            if(type.base_type == BaseType.Obj)
             {
-                reflection.Object obj = schema.objects[field.type.index];
+                reflection.Object obj = schema.objects[type.index];
                 isValueStruct = obj.is_struct && obj.HasAttribute("fs_valueStruct");
             }
-            
-            string equalityCheck = !isValueStruct ?
-                $"{field.name} != original.{field.name}" :
-                $"!{field.name}.IsEqualTo(original.{field.name})";
+
+            string equalityCheck = String.Empty;
+
+            if(!isValueStruct)
+            {
+                equalityCheck = $"{field.name} != original.{field.name}";
+            }
+            else if(enumVal != null)
+            {
+                equalityCheck = $"!{field.name}.Value.{enumVal.name}.IsEqualTo(original.{field.name}.Value.{enumVal.name})";
+            }
+            else
+            {
+                equalityCheck = $"!{field.name}.IsEqualTo(original.{field.name})";
+            }
 
             return $@"
             if({equalityCheck})
@@ -251,23 +272,54 @@ namespace {_namespace}
             ";
         }
 
-        private static string GetObjectDeltaComparison(Schema schema, Field field, int fieldIndex)
+        private static string GetObjectDeltaComparison(Schema schema, Field field, int fieldIndex, EnumVal enumVal = null)
         {
             bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
             string deltaType = !isArray ?
                 CodeWriterUtils.GetPropertyDeltaType(schema, field) :
                 CodeWriterUtils.GetPropertyDeltaListType(schema, field);
+            
+            string nestedObject = String.Empty;
+
+            if(enumVal != null)
+            {
+                string baseUnionType = CodeWriterUtils.GetPropertyBaseType(schema, new Field{ type = enumVal.union_type });
+                nestedObject = $"{baseUnionType} nestedObject = {field.name}.Value.Base.{enumVal.name};";
+            }
+
+            string firstEqualityCheck = String.Empty;
+
+            if(enumVal != null)
+            {
+                firstEqualityCheck = $"nestedObject != original.{field.name}.Value.{enumVal.name}";
+            }
+            else
+            {
+                firstEqualityCheck = $"{field.name} != original.{field.name}";
+            }
+
+            string secondEqualityCheck = String.Empty;
+
+            if(enumVal != null)
+            {
+                secondEqualityCheck = "nestedObject != null";
+            }
+            else
+            {
+                secondEqualityCheck = $"{field.name} != null";
+            }
 
             return $@"
-            if({field.name} != original.{field.name})
+            {nestedObject}
+            if({firstEqualityCheck})
             {{
-                delta.{field.name} = {field.name};
+                delta.{field.name} = {field.name}{(enumVal != null ? "?.Base" : String.Empty)};
                 delta.{field.name}Delta = null;
                 {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
             }}
-            else if({field.name} != null)
+            else if({secondEqualityCheck})
             {{
-                {deltaType} nestedDelta = {field.name}.GetDelta();
+                {deltaType} nestedDelta = {field.name}{(enumVal != null ? ".Value" : String.Empty)}.GetDelta();
                 if(nestedDelta != null)
                 {{
                     delta.{field.name}Delta = nestedDelta;
@@ -283,6 +335,62 @@ namespace {_namespace}
             {{
                 delta.{field.name} = null;
                 delta.{field.name}Delta = null;
+            }}
+            ";
+        }
+
+        private static string GetUnionDeltaComparison(Schema schema, Field field, int fieldIndex)
+        {
+            reflection.Enum union = schema.enums[field.type.index];
+            string discriminators = String.Empty;
+
+            for(int i = 0; i < union.values.Count; i++)
+            {
+                EnumVal enumVal = union.values[i];
+                string comparison = String.Empty;
+
+                if(!CodeWriterUtils.PropertyTypeIsDerived(schema, new Field{ type = enumVal.union_type })
+                && enumVal.union_type.base_type != BaseType.None)
+                {
+                    comparison = $@"{GetScalarDeltaComparison(schema, field, fieldIndex, enumVal)}
+                        delta.{field.name}Delta = null;";
+                }
+                else if(enumVal.union_type.base_type == BaseType.Obj)
+                {
+                    comparison = GetObjectDeltaComparison(schema, field, fieldIndex, enumVal);
+                }
+
+                discriminators += $@"
+                    case {i}:
+                    {{
+                        {comparison}
+                        break;
+                    }}
+                ";
+            }
+
+            return $@"
+            if({field.name} == null)
+            {{
+                delta.{field.name} = null;
+                delta.{field.name}Delta = null;
+                if(original.{field.name} != null)
+                {{
+                    {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
+                }}
+            }}
+            else if(original.{field.name} == null || {field.name}.Value.Discriminator != original.{field.name}.Value.Discriminator)
+            {{
+                delta.{field.name} = {field.name}?.Base;
+                delta.{field.name}Delta = null;
+                {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
+            }}
+            else
+            {{
+                switch({field.name}.Value.Discriminator)
+                {{
+                    {discriminators}
+                }}
             }}
             ";
         }

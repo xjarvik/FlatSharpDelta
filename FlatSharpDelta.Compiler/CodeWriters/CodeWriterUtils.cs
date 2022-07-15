@@ -160,7 +160,8 @@ namespace FlatSharpDelta.Compiler
             || field.type.base_type == BaseType.Union
             || field.type.base_type == BaseType.UType)
             {
-                baseType = "Base" + baseType;
+                reflection.Object obj = new reflection.Object{ name = baseType };
+                baseType = obj.GetNamespace() + "Base" + obj.GetNameWithoutNamespace();
             }
 
             return baseType;
