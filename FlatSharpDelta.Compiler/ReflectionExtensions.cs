@@ -55,6 +55,8 @@ namespace FlatSharpDelta.Compiler
             }
         }
 
+        public static bool RemoveAttribute(this reflection.Object obj, string key) => obj.HasAttribute(key) ? obj.attributes.Remove(obj.GetAttribute(key)) : false;
+
         public static string GetNamespace(this reflection.Object obj) => obj.name.Substring(0, obj.name.LastIndexOf("."));
 
         public static string GetNameWithoutNamespace(this reflection.Object obj) => obj.name.Substring(obj.name.LastIndexOf(".") + 1);
@@ -66,6 +68,22 @@ namespace FlatSharpDelta.Compiler
                 obj.declaration_file = replacementDeclarationFile;
             }
         }
+
+        public static void ForEachFieldExceptUType(this reflection.Object obj, Action<Field, int> callback)
+        {
+            int i = 0;
+
+            obj.fields.OrderBy(f => f.id).ToList().ForEach(field =>
+            {
+                if(field.type.base_type != BaseType.UType && field.type.element != BaseType.UType)
+                {
+                    callback(field, i);
+                    i++;
+                }
+            });
+        }
+
+        public static void ForEachFieldExceptUType(this reflection.Object obj, Action<Field> callback) => obj.ForEachFieldExceptUType((field, _) => callback(field));
         
 
         // reflection.Enum
@@ -109,6 +127,8 @@ namespace FlatSharpDelta.Compiler
                 });
             }
         }
+
+        public static bool RemoveAttribute(this Field field, string key) => field.HasAttribute(key) ? field.attributes.Remove(field.GetAttribute(key)) : false;
 
 
         // reflection.Service

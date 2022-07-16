@@ -7,207 +7,209 @@ namespace FlatSharpDelta.Compiler
 {
     static class CodeWriterUtils
     {
-        public static string GetPropertyType(Schema schema, Field field)
+        public static string GetPropertyType(Schema schema, reflection.Type type, bool optional = false)
         {
-            string type;
+            string propertyType;
 
-            switch(field.type.base_type)
+            switch(type.base_type)
             {
                 case BaseType.Bool:
-                    type = "bool";
+                    propertyType = "bool";
                     break;
 
                 case BaseType.Byte:
-                    type = "sbyte";
+                    propertyType = "sbyte";
                     break;
 
                 case BaseType.UByte:
-                    type = "byte";
+                    propertyType = "byte";
                     break;
 
                 case BaseType.Short:
-                    type = "short";
+                    propertyType = "short";
                     break;
 
                 case BaseType.UShort:
-                    type = "ushort";
+                    propertyType = "ushort";
                     break;
 
                 case BaseType.Int:
-                    type = "int";
+                    propertyType = "int";
                     break;
 
                 case BaseType.UInt:
-                    type = "uint";
+                    propertyType = "uint";
                     break;
 
                 case BaseType.Long:
-                    type = "long";
+                    propertyType = "long";
                     break;
 
                 case BaseType.ULong:
-                    type = "ulong";
+                    propertyType = "ulong";
                     break;
 
                 case BaseType.Float:
-                    type = "float";
+                    propertyType = "float";
                     break;
 
                 case BaseType.Double:
-                    type = "double";
+                    propertyType = "double";
                     break;
 
                 case BaseType.String:
-                    type = "string";
+                    propertyType = "string";
                     break;
 
                 case BaseType.Obj:
-                    type = schema.objects[field.type.index].name;
+                    propertyType = schema.objects[type.index].name;
                     break;
 
                 case BaseType.Union:
                 case BaseType.UType:
-                    type = schema.enums[field.type.index].name;
+                    propertyType = schema.enums[type.index].name;
                     break;
 
                 default:
                     return null;
             }
 
-            if(field.optional)
+            if(optional)
             {
-                type += "?";
+                propertyType += "?";
             }
 
-            return type;
+            return propertyType;
         }
 
-        public static string GetPropertyListType(Schema schema, Field field)
+        public static string GetPropertyListType(Schema schema, reflection.Type type)
         {
-            string listType;
+            string propertyListType;
 
-            switch(field.type.element)
+            switch(type.element)
             {
                 case BaseType.Bool:
-                    listType = "BoolList?";
+                    propertyListType = "BoolList?";
                     break;
 
                 case BaseType.Byte:
-                    listType = "ByteList?";
+                    propertyListType = "ByteList?";
                     break;
 
                 case BaseType.UByte:
-                    listType = "UByteList?";
+                    propertyListType = "UByteList?";
                     break;
 
                 case BaseType.Short:
-                    listType = "ShortList?";
+                    propertyListType = "ShortList?";
                     break;
 
                 case BaseType.UShort:
-                    listType = "UShortList?";
+                    propertyListType = "UShortList?";
                     break;
 
                 case BaseType.Int:
-                    listType = "IntList?";
+                    propertyListType = "IntList?";
                     break;
 
                 case BaseType.UInt:
-                    listType = "UIntList?";
+                    propertyListType = "UIntList?";
                     break;
 
                 case BaseType.Long:
-                    listType = "LongList?";
+                    propertyListType = "LongList?";
                     break;
 
                 case BaseType.ULong:
-                    listType = "ULongList?";
+                    propertyListType = "ULongList?";
                     break;
 
                 case BaseType.Float:
-                    listType = "FloatList?";
+                    propertyListType = "FloatList?";
                     break;
 
                 case BaseType.Double:
-                    listType = "DoubleList?";
+                    propertyListType = "DoubleList?";
                     break;
 
                 case BaseType.String:
-                    listType = "StringList?";
+                    propertyListType = "StringList?";
                     break;
 
                 case BaseType.Obj:
-                    listType = schema.objects[field.type.index].name + "List?";
+                    propertyListType = schema.objects[type.index].name + "List?";
                     break;
 
                 case BaseType.Union:
                 case BaseType.UType:
-                    listType = schema.enums[field.type.index].name + "List?";
+                    propertyListType = schema.enums[type.index].name + "List?";
                     break;
 
                 default:
                     return null;
             }
 
-            return listType;
+            return propertyListType;
         }
 
-        public static string GetPropertyBaseType(Schema schema, Field field)
+        public static string GetPropertyBaseType(Schema schema, reflection.Type type, bool optional = false)
         {
-            string baseType = GetPropertyType(schema, field);
+            string propertyBaseType = GetPropertyType(schema, type, optional);
 
-            if(field.type.base_type == BaseType.Obj
-            || field.type.base_type == BaseType.Union
-            || field.type.base_type == BaseType.UType)
+            if(type.base_type == BaseType.Obj
+            || type.base_type == BaseType.Union
+            || type.base_type == BaseType.UType)
             {
-                reflection.Object obj = new reflection.Object{ name = baseType };
-                baseType = obj.GetNamespace() + "Base" + obj.GetNameWithoutNamespace();
+                reflection.Object obj = new reflection.Object{ name = propertyBaseType };
+                propertyBaseType = obj.GetNamespace() + ".Base" + obj.GetNameWithoutNamespace();
             }
 
-            return baseType;
+            return propertyBaseType;
         }
 
-        public static string GetPropertyBaseListType(Schema schema, Field field)
+        public static string GetPropertyBaseListType(Schema schema, reflection.Type type, bool optional = false)
         {
-            string baseType = GetPropertyBaseType(schema, field);
+            reflection.Type baseType = new reflection.Type(type);
+            baseType.base_type = type.element;
+            string propertyBaseType = GetPropertyBaseType(schema, baseType, optional);
 
-            if(field.type.base_type == BaseType.Obj
-            || field.type.base_type == BaseType.Union
-            || field.type.base_type == BaseType.UType)
+            if(type.element == BaseType.Obj
+            || type.element == BaseType.Union
+            || type.element == BaseType.UType)
             {
-                baseType = baseType.TrimEnd('?');
+                propertyBaseType = propertyBaseType.TrimEnd('?');
             }
 
-            return $"IReadOnlyList<{baseType}>?";
+            return $"IReadOnlyList<{propertyBaseType}>?";
         }
 
-        public static string GetPropertyDeltaType(Schema schema, Field field)
+        public static string GetPropertyDeltaType(Schema schema, reflection.Type type)
         {
-            string deltaType;
+            string propertyDeltaType;
 
-            switch(field.type.base_type)
+            switch(type.base_type)
             {
                 case BaseType.Obj:
-                    deltaType = schema.objects[field.type.index].name + "Delta?";
+                    propertyDeltaType = schema.objects[type.index].name + "Delta?";
                     break;
 
                 case BaseType.Union:
                 case BaseType.UType:
-                    deltaType = schema.enums[field.type.index].name + "Delta?";
+                    propertyDeltaType = schema.enums[type.index].name + "Delta?";
                     break;
 
                 default:
                     return null;
             }
 
-            return deltaType;
+            return propertyDeltaType;
         }
 
-        public static string GetPropertyDeltaListType(Schema schema, Field field)
+        public static string GetPropertyDeltaListType(Schema schema, reflection.Type type)
         {
             string listDeltaType;
 
-            switch(field.type.element)
+            switch(type.element)
             {
                 case BaseType.Bool:
                     listDeltaType = "BoolListDelta";
@@ -258,12 +260,12 @@ namespace FlatSharpDelta.Compiler
                     break;
 
                 case BaseType.Obj:
-                    listDeltaType = schema.objects[field.type.index].name + "ListDelta";
+                    listDeltaType = schema.objects[type.index].name + "ListDelta";
                     break;
 
                 case BaseType.Union:
                 case BaseType.UType:
-                    listDeltaType = schema.enums[field.type.index].name + "ListDelta";
+                    listDeltaType = schema.enums[type.index].name + "ListDelta";
                     break;
 
                 default:
@@ -310,17 +312,17 @@ namespace FlatSharpDelta.Compiler
             }
         }
 
-        public static bool PropertyTypeIsDerived(Schema schema, Field field)
+        public static bool PropertyTypeIsDerived(Schema schema, reflection.Type type)
         {
-            switch(field.type.base_type)
+            switch(type.base_type)
             {
                 case BaseType.Obj:
-                    reflection.Object obj = schema.objects[field.type.index];
+                    reflection.Object obj = schema.objects[type.index];
                     return !(obj.is_struct && obj.HasAttribute("fs_valueStruct"));
 
                 case BaseType.Union:
                 case BaseType.UType:
-                    reflection.Enum _enum = schema.enums[field.type.index];
+                    reflection.Enum _enum = schema.enums[type.index];
                     return _enum.is_union;
 
                 case BaseType.Vector:

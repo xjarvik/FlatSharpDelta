@@ -34,7 +34,20 @@ namespace {_namespace}
 #pragma warning restore CS8618
 
         {GetDelta(schema, obj)}
+
+        {GetApplyDelta(schema, obj)}
+
+        {GetUpdateInternalReferenceState(obj)}
+
+        {GetUpdateReferenceState(schema, obj)}
+
+        {GetMutableBaseClass(schema, obj)}
+
+        {GetMutableDeltaClass(schema, obj)}
+
+        {(obj.HasAttribute("fs_serializer") ? GetSerializerClass(obj) : String.Empty)}
     }}
+}}
             ";
 
             return code;
@@ -70,22 +83,20 @@ namespace {_namespace}
             string indexes = String.Empty;
             int offset = 0;
 
-            for(int i = 0; i < obj.fields.Count; i++)
+            obj.ForEachFieldExceptUType((field, i) =>
             {
-                Field field = obj.fields[i];
-
                 int index = i + offset;
                 indexes += $@"
         private const {(index <= 255 ? "byte" : "ushort")} {field.name}_Index = {index};";
 
-                if(CodeWriterUtils.PropertyTypeIsDerived(schema, field))
+                if(CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
                 {
                     offset++;
                     index = i + offset;
                     indexes += $@"
         private const {(index <= 255 ? "byte" : "ushort")} {field.name}Delta_Index = {index};";
                 }
-            }
+            });
 
             return indexes;
         }
@@ -94,13 +105,13 @@ namespace {_namespace}
         {
             string properties = String.Empty;
 
-            foreach(Field field in obj.fields)
+            obj.ForEachFieldExceptUType(field =>
             {
                 bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
                 string type = !isArray ?
-                    CodeWriterUtils.GetPropertyType(schema, field) :
-                    CodeWriterUtils.GetPropertyListType(schema, field);
-                bool privateMember = CodeWriterUtils.PropertyTypeIsDerived(schema, field);
+                    CodeWriterUtils.GetPropertyType(schema, field.type, field.optional) :
+                    CodeWriterUtils.GetPropertyListType(schema, field.type);
+                bool privateMember = CodeWriterUtils.PropertyTypeIsDerived(schema, field.type);
                 bool isUnion = field.type.base_type == BaseType.Union;
 
                 properties += $@"
@@ -118,7 +129,7 @@ namespace {_namespace}
             )}
         }}
                 ";
-            }
+            });
 
             return properties;
         }
@@ -155,9 +166,9 @@ namespace {_namespace}
             string name = obj.GetNameWithoutNamespace();
             string fieldCopies = String.Empty;
 
-            foreach(Field field in obj.fields)
+            obj.ForEachFieldExceptUType(field =>
             {
-                if(!CodeWriterUtils.PropertyTypeIsDerived(schema, field))
+                if(!CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
                 {
                     fieldCopies += $@"
             {field.name} = b.{field.name};";
@@ -166,17 +177,17 @@ namespace {_namespace}
                 {
                     bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
                     string baseType = !isArray ?
-                        CodeWriterUtils.GetPropertyBaseType(schema, field) :
-                        CodeWriterUtils.GetPropertyBaseListType(schema, field);
+                        CodeWriterUtils.GetPropertyBaseType(schema, field.type, field.optional) :
+                        CodeWriterUtils.GetPropertyBaseListType(schema, field.type, field.optional);
                     string type = !isArray ?
-                        CodeWriterUtils.GetPropertyType(schema, field) :
-                        CodeWriterUtils.GetPropertyListType(schema, field);
+                        CodeWriterUtils.GetPropertyType(schema, field.type, field.optional) :
+                        CodeWriterUtils.GetPropertyListType(schema, field.type);
                     
                     fieldCopies += $@"
             {baseType} b_{field.name} = b.{field.name};
             {field.name} = b_{field.name} != null ? new {type}(b_{field.name}) : null;";
                 }
-            }
+            });
 
             return $@"
         public {name}(Base{name} b)
@@ -194,14 +205,13 @@ namespace {_namespace}
             string deltaComparisons = String.Empty;
             int offset = 0;
 
-            for(int i = 0; i < obj.fields.Count; i++)
+            obj.ForEachFieldExceptUType((field, i) =>
             {
-                Field field = obj.fields[i];
                 int index = i + offset;
                 bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
                 bool isUnion = field.type.base_type == BaseType.Union;
 
-                if(!CodeWriterUtils.PropertyTypeIsDerived(schema, field))
+                if(!CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
                 {
                     deltaComparisons += GetScalarDeltaComparison(schema, field, index);
                 }
@@ -215,7 +225,7 @@ namespace {_namespace}
                     deltaComparisons += GetUnionDeltaComparison(schema, field, index);
                     offset++;
                 }
-            }
+            });
 
             return $@"
         public {name}Delta? GetDelta()
@@ -276,14 +286,14 @@ namespace {_namespace}
         {
             bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
             string deltaType = !isArray ?
-                CodeWriterUtils.GetPropertyDeltaType(schema, field) :
-                CodeWriterUtils.GetPropertyDeltaListType(schema, field);
+                CodeWriterUtils.GetPropertyDeltaType(schema, field.type) :
+                CodeWriterUtils.GetPropertyDeltaListType(schema, field.type);
             
             string nestedObject = String.Empty;
 
             if(enumVal != null)
             {
-                string baseUnionType = CodeWriterUtils.GetPropertyBaseType(schema, new Field{ type = enumVal.union_type });
+                string baseUnionType = CodeWriterUtils.GetPropertyBaseType(schema, enumVal.union_type);
                 nestedObject = $"{baseUnionType} nestedObject = {field.name}.Value.Base.{enumVal.name};";
             }
 
@@ -349,7 +359,7 @@ namespace {_namespace}
                 EnumVal enumVal = union.values[i];
                 string comparison = String.Empty;
 
-                if(!CodeWriterUtils.PropertyTypeIsDerived(schema, new Field{ type = enumVal.union_type })
+                if(!CodeWriterUtils.PropertyTypeIsDerived(schema, enumVal.union_type)
                 && enumVal.union_type.base_type != BaseType.None)
                 {
                     comparison = $@"{GetScalarDeltaComparison(schema, field, fieldIndex, enumVal)}
@@ -392,6 +402,307 @@ namespace {_namespace}
                     {discriminators}
                 }}
             }}
+            ";
+        }
+
+        private static string GetApplyDelta(Schema schema, reflection.Object obj)
+        {
+            string name = obj.GetNameWithoutNamespace();
+            string byteCases = String.Empty;
+            string shortCases = String.Empty;
+            int offset = 0;
+
+            obj.ForEachFieldExceptUType((field, i) =>
+            {
+                int index = i + offset;
+                int deltaIndex = i + offset + 1;
+                string _case = String.Empty;
+                string deltaCase = String.Empty;
+                bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
+
+                if(!CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
+                {
+                    _case = $@"
+                        case {field.name}_Index:
+                        {{
+                            {field.name} = delta.{field.name};
+                            break;
+                        }}
+                    ";
+                }
+                else
+                {
+                    string baseType = !isArray ?
+                        CodeWriterUtils.GetPropertyBaseType(schema, field.type, field.optional) :
+                        CodeWriterUtils.GetPropertyBaseListType(schema, field.type, field.optional);
+                    string type = !isArray ?
+                        CodeWriterUtils.GetPropertyType(schema, field.type, field.optional) :
+                        CodeWriterUtils.GetPropertyListType(schema, field.type);
+
+                    _case = $@"
+                        case {field.name}_Index:
+                        {{
+                            {baseType} nestedObject = delta.{field.name};
+                            {field.name} = nestedObject != null ? new {type}(nestedObject) : null;
+                            break;
+                        }}
+                    ";
+
+                    deltaCase = $@"
+                        case {field.name}Delta_Index:
+                        {{
+                            {field.name}?.ApplyDelta(delta.{field.name}Delta);
+                            break;
+                        }}
+                    ";
+                    
+                    offset++;
+                }
+
+                if(index <= 255)
+                {
+                    byteCases += _case;
+                }
+                else
+                {
+                    shortCases += _case;
+                }
+
+                if(deltaIndex <= 255)
+                {
+                    byteCases += deltaCase;
+                }
+                else
+                {
+                    shortCases += deltaCase;
+                }
+            });
+
+            return $@"
+        public void ApplyDelta({name}Delta? delta)
+        {{
+            if(delta == null)
+            {{
+                return;
+            }}
+
+            IReadOnlyList<byte>? byteFields = delta.ByteFields;
+
+            if(byteFields != null)
+            {{
+                int count = byteFields.Count;
+
+                for(int i = 0; i < count; i++)
+                {{
+                    byte field = byteFields[i];
+                    switch(field)
+                    {{
+                        {byteCases}
+                    }}
+                }}
+            }}
+
+            {(obj.fields.Count > 255 ? $@"
+            IReadOnlyList<ushort>? shortFields = delta.ShortFields;
+
+            if(shortFields != null)
+            {{
+                int count = shortFields.Count;
+
+                for(int i = 0; i < count; i++)
+                {{
+                    ushort field = shortFields[i];
+                    switch(field)
+                    {{
+                        {shortCases}
+                    }}
+                }}
+            }}
+            " :
+            String.Empty)}
+        }}
+            ";
+        }
+
+        private static string GetUpdateInternalReferenceState(reflection.Object obj)
+        {
+            string assignments = String.Empty;
+
+            obj.ForEachFieldExceptUType(field =>
+            {
+                bool isUnion = field.type.base_type == BaseType.Union;
+
+                assignments += $@"
+            original.{field.name} = {field.name}{(isUnion ? "?.Base" : String.Empty)};";
+            });
+
+            return $@"
+        private void UpdateInternalReferenceState()
+        {{
+            {assignments}
+        }}
+            ";
+        }
+
+        private static string GetUpdateReferenceState(Schema schema, reflection.Object obj)
+        {
+            string calls = String.Empty;
+
+            obj.ForEachFieldExceptUType(field =>
+            {
+                if(CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
+                {
+                    calls += $@"
+            {field.name}?.UpdateReferenceState();";
+                }
+            });
+
+            return $@"
+        public void UpdateInternalReferenceState()
+        {{
+            UpdateInternalReferenceState();
+            {calls}
+        }}
+            ";
+        }
+
+        private static string GetMutableBaseClass(Schema schema, reflection.Object obj)
+        {
+            string name = obj.GetNameWithoutNamespace();
+            string properties = String.Empty;
+
+            obj.ForEachFieldExceptUType(field =>
+            {
+                bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
+                string baseType = !isArray ?
+                    CodeWriterUtils.GetPropertyBaseType(schema, field.type, field.optional) :
+                    CodeWriterUtils.GetPropertyBaseListType(schema, field.type, field.optional);
+                
+                properties += $@"
+            public new {baseType} {field.name}
+            {{
+                get => base.{field.name};
+                set => base.{field.name} = value;
+            }}
+                ";
+            });
+
+            return $@"
+        private class MutableBase{name} : Base{name}
+        {{
+            {properties}
+        }}
+            ";
+        }
+
+        private static string GetMutableDeltaClass(Schema schema, reflection.Object obj)
+        {
+            string name = obj.GetNameWithoutNamespace();
+            string properties = String.Empty;
+
+            obj.ForEachFieldExceptUType(field =>
+            {
+                bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
+                string baseType = !isArray ?
+                    CodeWriterUtils.GetPropertyBaseType(schema, field.type, field.optional) :
+                    CodeWriterUtils.GetPropertyBaseListType(schema, field.type, field.optional);
+                
+                properties += $@"
+            public new {baseType} {field.name}
+            {{
+                get => base.{field.name};
+                set => base.{field.name} = value;
+            }}
+                ";
+
+                if(CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
+                {
+                    string deltaType = !isArray ?
+                        CodeWriterUtils.GetPropertyDeltaType(schema, field.type) :
+                        CodeWriterUtils.GetPropertyDeltaListType(schema, field.type);
+
+                    properties += $@"
+            public new {deltaType} {field.name}Delta
+            {{
+                get => base.{field.name}Delta;
+                set => base.{field.name}Delta = value;
+            }}
+                    ";
+                }
+            });
+
+            return $@"
+        private class Mutable{name}Delta : {name}Delta
+        {{
+            private List<byte>? _ByteFields {{ get; set; }}
+            public new List<byte>? ByteFields
+            {{
+                get => _ByteFields;
+                set
+                {{
+                    _ByteFields = value;
+                    base.ByteFields = value;
+                }}
+            }}
+
+            {(obj.fields.Count > 255 ? $@"
+            private List<ushort>? _ShortFields {{ get; set; }}
+            public new List<ushort>? ShortFields
+            {{
+                get => _ShortFields;
+                set
+                {{
+                    _ShortFields = value;
+                    base.ShortFields = value;
+                }}
+            }}
+            " :
+            String.Empty)}
+
+            {properties}
+        }}
+            ";
+        }
+
+        private static string GetSerializerClass(reflection.Object obj)
+        {
+            string name = obj.GetNameWithoutNamespace();
+
+            return $@"
+        private class {name}Serializer : ISerializer<{name}>
+        {{
+            private ISerializer<Base{name}> baseSerializer;
+            private Type _RootType = typeof({name});
+            public Type RootType {{ get => _RootType; }}
+            public string? CSharp {{ get => null; }}
+            public Assembly? Assembly {{ get => null; }}
+            public byte[]? AssemblyBytes {{ get => null; }}
+            public FlatBufferDeserializationOption DeserializationOption {{ get => FlatBufferDeserializationOption.GreedyMutable; }}
+
+            public {name}Serializer()
+            {{
+                baseSerializer = Base{name}.Serializer;
+            }}
+
+            public {name}Serializer(ISerializer<Base{name}> baseSerializer)
+            {{
+                this.baseSerializer = baseSerializer;
+            }}
+
+            public int GetMaxSize({name} item) => baseSerializer.GetMaxSize(item);
+
+            public int GetMaxSize(object item) => baseSerializer.GetMaxSize(item);
+
+            public int Write<TSpanWriter>(TSpanWriter writer, Span<byte> destination, {name} item) where TSpanWriter : ISpanWriter => baseSerializer.Write(writer, destination, item);
+
+            public int Write<TSpanWriter>(TSpanWriter writer, Span<byte> destination, object item) where TSpanWriter : ISpanWriter => baseSerializer.Write(writer, destination, item);
+
+            public {name} Parse<TInputBuffer>(TInputBuffer buffer) where TInputBuffer : IInputBuffer => new {name}(baseSerializer.Parse<TInputBuffer>(buffer));
+
+            object ISerializer.Parse<TInputBuffer>(TInputBuffer buffer) => new {name}(baseSerializer.Parse<TInputBuffer>(buffer));
+
+            public ISerializer<{name}> WithSettings(SerializerSettings settings) => new {name}Serializer(baseSerializer.WithSettings(settings));
+        }}
             ";
         }
     }
