@@ -5,6 +5,8 @@ using System.Linq;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using CommandLine;
 using FlatSharp;
 using reflection;
@@ -205,7 +207,12 @@ namespace FlatSharpDelta.Compiler
                         );
                     }
 
-                    string schemaCode = SchemaCodeWriter.WriteCode(originalSchema, inputFile);
+                    string schemaCode = CSharpSyntaxTree.ParseText
+                    (
+                        SchemaCodeWriter.WriteCode(originalSchema, inputFile)
+                    )
+                    .GetRoot().NormalizeWhitespace().ToFullString();
+
                     string schemaCodeFilePath = Path.Combine
                     (
                         startInfo.OutputDirectory.FullName,

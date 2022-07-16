@@ -13,41 +13,41 @@ namespace FlatSharpDelta.Compiler
             string _namespace = obj.GetNamespace();
 
             string code = $@"
-namespace {_namespace}
-{{
-    {GetUsings(obj)}
+                namespace {_namespace}
+                {{
+                    {GetUsings(obj)}
 
-    public partial class {name} : Base{name}, IFlatBufferSerializable<{name}>
-    {{
-        {GetMembers(obj)}
+                    public partial class {name} : Base{name}, IFlatBufferSerializable<{name}>
+                    {{
+                        {GetMembers(obj)}
 
-        {GetIndexes(schema, obj)}
+                        {GetIndexes(schema, obj)}
 
-        {GetProperties(schema, obj)}
+                        {GetProperties(schema, obj)}
 
-        {GetInitialize(obj)}
+                        {GetInitialize(obj)}
 
-#pragma warning disable CS8618
-        {GetDefaultConstructor(obj)}
+                #pragma warning disable CS8618
+                        {GetDefaultConstructor(obj)}
 
-        {GetCopyConstructor(schema, obj)}
-#pragma warning restore CS8618
+                        {GetCopyConstructor(schema, obj)}
+                #pragma warning restore CS8618
 
-        {GetDelta(schema, obj)}
+                        {GetDelta(schema, obj)}
 
-        {GetApplyDelta(schema, obj)}
+                        {GetApplyDelta(schema, obj)}
 
-        {GetUpdateInternalReferenceState(obj)}
+                        {GetUpdateInternalReferenceState(obj)}
 
-        {GetUpdateReferenceState(schema, obj)}
+                        {GetUpdateReferenceState(schema, obj)}
 
-        {GetMutableBaseClass(schema, obj)}
+                        {GetMutableBaseClass(schema, obj)}
 
-        {GetMutableDeltaClass(schema, obj)}
+                        {GetMutableDeltaClass(schema, obj)}
 
-        {(obj.HasAttribute("fs_serializer") ? GetSerializerClass(obj) : String.Empty)}
-    }}
-}}
+                        {(obj.HasAttribute("fs_serializer") ? GetSerializerClass(obj) : String.Empty)}
+                    }}
+                }}
             ";
 
             return code;
@@ -58,7 +58,7 @@ namespace {_namespace}
             string _namespace = obj.GetNamespace();
 
             return $@"
-    using {_namespace}.SupportingTypes;
+                using {_namespace}.SupportingTypes;
             ";
         }
 
@@ -67,14 +67,14 @@ namespace {_namespace}
             string name = obj.GetNameWithoutNamespace();
 
             return $@"
-        private MutableBase{name} original;
-        private Mutable{name}Delta delta;
-        private List<byte> byteFields;
-        {(obj.fields.Count > 255 ? "private List<ushort> shortFields;" : String.Empty)}
-        private static {name}Serializer _Serializer = new {name}Serializer();
-        public static new ISerializer<{name}> Serializer => _Serializer;
-        ISerializer IFlatBufferSerializable.Serializer => _Serializer;
-        ISerializer<{name}> IFlatBufferSerializable<{name}>.Serializer => _Serializer;
+                private MutableBase{name} original;
+                private Mutable{name}Delta delta;
+                private List<byte> byteFields;
+                {(obj.fields.Count > 255 ? "private List<ushort> shortFields;" : String.Empty)}
+                private static {name}Serializer _Serializer = new {name}Serializer();
+                public static new ISerializer<{name}> Serializer => _Serializer;
+                ISerializer IFlatBufferSerializable.Serializer => _Serializer;
+                ISerializer<{name}> IFlatBufferSerializable<{name}>.Serializer => _Serializer;
             ";
         }
 
@@ -87,14 +87,16 @@ namespace {_namespace}
             {
                 int index = i + offset;
                 indexes += $@"
-        private const {(index <= 255 ? "byte" : "ushort")} {field.name}_Index = {index};";
+                    private const {(index <= 255 ? "byte" : "ushort")} {field.name}_Index = {index};
+                ";
 
                 if(CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
                 {
                     offset++;
                     index = i + offset;
                     indexes += $@"
-        private const {(index <= 255 ? "byte" : "ushort")} {field.name}Delta_Index = {index};";
+                        private const {(index <= 255 ? "byte" : "ushort")} {field.name}Delta_Index = {index};
+                    ";
                 }
             });
 
@@ -115,19 +117,19 @@ namespace {_namespace}
                 bool isUnion = field.type.base_type == BaseType.Union;
 
                 properties += $@"
-        {(privateMember ? $"private new {type} _{field.name};" : String.Empty)}
-        public new {type} {field.name}
-        {{
-            get => {(privateMember ? $"_{field.name}" : $"base.{field.name}")};
-            {(privateMember ?
-            $@"set
-            {{
-                _{field.name} = value;
-                base.{field.name} = value{(isUnion ? "?.Base" : String.Empty)};
-            }}" :
-            $"set => base.{field.name} = value;"
-            )}
-        }}
+                    {(privateMember ? $"private new {type} _{field.name};" : String.Empty)}
+                    public new {type} {field.name}
+                    {{
+                        get => {(privateMember ? $"_{field.name}" : $"base.{field.name}")};
+                        {(privateMember ?
+                        $@"set
+                        {{
+                            _{field.name} = value;
+                            base.{field.name} = value{(isUnion ? "?.Base" : String.Empty)};
+                        }}" :
+                        $"set => base.{field.name} = value;"
+                        )}
+                    }}
                 ";
             });
 
@@ -139,13 +141,13 @@ namespace {_namespace}
             string name = obj.GetNameWithoutNamespace();
 
             return $@"
-        private void Initialize()
-        {{
-            original = new MutableBase{name}();
-            delta = new Mutable{name}Delta();
-            byteFields = new List<byte>();
-            {(obj.fields.Count > 255 ? "shortFields = new List<ushort>();" : String.Empty)}
-        }}
+                private void Initialize()
+                {{
+                    original = new MutableBase{name}();
+                    delta = new Mutable{name}Delta();
+                    byteFields = new List<byte>();
+                    {(obj.fields.Count > 255 ? "shortFields = new List<ushort>();" : String.Empty)}
+                }}
             ";
         }
 
@@ -154,10 +156,10 @@ namespace {_namespace}
             string name = obj.GetNameWithoutNamespace();
 
             return $@"
-        public {name}()
-        {{
-            Initialize();
-        }}
+                public {name}()
+                {{
+                    Initialize();
+                }}
             ";
         }
 
@@ -171,7 +173,8 @@ namespace {_namespace}
                 if(!CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
                 {
                     fieldCopies += $@"
-            {field.name} = b.{field.name};";
+                        {field.name} = b.{field.name};
+                    ";
                 }
                 else
                 {
@@ -184,18 +187,19 @@ namespace {_namespace}
                         CodeWriterUtils.GetPropertyListType(schema, field.type);
                     
                     fieldCopies += $@"
-            {baseType} b_{field.name} = b.{field.name};
-            {field.name} = b_{field.name} != null ? new {type}(b_{field.name}) : null;";
+                        {baseType} b_{field.name} = b.{field.name};
+                        {field.name} = b_{field.name} != null ? new {type}(b_{field.name}) : null;
+                    ";
                 }
             });
 
             return $@"
-        public {name}(Base{name} b)
-        {{
-            Initialize();
-            {fieldCopies}
-            UpdateInternalReferenceState();
-        }}
+                public {name}(Base{name} b)
+                {{
+                    Initialize();
+                    {fieldCopies}
+                    UpdateInternalReferenceState();
+                }}
             ";
         }
 
@@ -228,18 +232,18 @@ namespace {_namespace}
             });
 
             return $@"
-        public {name}Delta? GetDelta()
-        {{
-            byteFields.Clear();
-            {(obj.fields.Count > 255 ? "shortFields.Clear();" : String.Empty)}
+                public {name}Delta? GetDelta()
+                {{
+                    byteFields.Clear();
+                    {(obj.fields.Count > 255 ? "shortFields.Clear();" : String.Empty)}
 
-            {deltaComparisons}
+                    {deltaComparisons}
 
-            delta.ByteFields = byteFields.Count > 0 ? byteFields : null;
-            {(obj.fields.Count > 255 ? "delta.ShortFields = shortFields.Count > 0 ? shortFields : null;" : String.Empty)}
+                    delta.ByteFields = byteFields.Count > 0 ? byteFields : null;
+                    {(obj.fields.Count > 255 ? "delta.ShortFields = shortFields.Count > 0 ? shortFields : null;" : String.Empty)}
 
-            return byteFields.Count > 0{(obj.fields.Count > 255 ? " || shortFields.Count > 0" : String.Empty)} ? delta : null;
-        }}
+                    return byteFields.Count > 0{(obj.fields.Count > 255 ? " || shortFields.Count > 0" : String.Empty)} ? delta : null;
+                }}
             ";
         }
 
@@ -270,15 +274,15 @@ namespace {_namespace}
             }
 
             return $@"
-            if({equalityCheck})
-            {{
-                delta.{field.name} = {field.name};
-                {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
-            }}
-            else
-            {{
-                delta.{field.name} = {CodeWriterUtils.GetPropertyDefaultValue(schema, field)};
-            }}
+                if({equalityCheck})
+                {{
+                    delta.{field.name} = {field.name};
+                    {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
+                }}
+                else
+                {{
+                    delta.{field.name} = {CodeWriterUtils.GetPropertyDefaultValue(schema, field)};
+                }}
             ";
         }
 
@@ -320,32 +324,32 @@ namespace {_namespace}
             }
 
             return $@"
-            {nestedObject}
-            if({firstEqualityCheck})
-            {{
-                delta.{field.name} = {field.name}{(enumVal != null ? "?.Base" : String.Empty)};
-                delta.{field.name}Delta = null;
-                {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
-            }}
-            else if({secondEqualityCheck})
-            {{
-                {deltaType} nestedDelta = {field.name}{(enumVal != null ? ".Value" : String.Empty)}.GetDelta();
-                if(nestedDelta != null)
+                {nestedObject}
+                if({firstEqualityCheck})
                 {{
-                    delta.{field.name}Delta = nestedDelta;
-                    {(fieldIndex + 1 <= 255 ? "byteFields" : "shortFields")}.Add({field.name}Delta_Index);
+                    delta.{field.name} = {field.name}{(enumVal != null ? "?.Base" : String.Empty)};
+                    delta.{field.name}Delta = null;
+                    {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
+                }}
+                else if({secondEqualityCheck})
+                {{
+                    {deltaType} nestedDelta = {field.name}{(enumVal != null ? ".Value" : String.Empty)}.GetDelta();
+                    if(nestedDelta != null)
+                    {{
+                        delta.{field.name}Delta = nestedDelta;
+                        {(fieldIndex + 1 <= 255 ? "byteFields" : "shortFields")}.Add({field.name}Delta_Index);
+                    }}
+                    else
+                    {{
+                        delta.{field.name}Delta = null;
+                    }}
+                    delta.{field.name} = null;
                 }}
                 else
                 {{
+                    delta.{field.name} = null;
                     delta.{field.name}Delta = null;
                 }}
-                delta.{field.name} = null;
-            }}
-            else
-            {{
-                delta.{field.name} = null;
-                delta.{field.name}Delta = null;
-            }}
             ";
         }
 
@@ -362,8 +366,10 @@ namespace {_namespace}
                 if(!CodeWriterUtils.PropertyTypeIsDerived(schema, enumVal.union_type)
                 && enumVal.union_type.base_type != BaseType.None)
                 {
-                    comparison = $@"{GetScalarDeltaComparison(schema, field, fieldIndex, enumVal)}
-                        delta.{field.name}Delta = null;";
+                    comparison = $@"
+                        {GetScalarDeltaComparison(schema, field, fieldIndex, enumVal)}
+                        delta.{field.name}Delta = null;
+                    ";
                 }
                 else if(enumVal.union_type.base_type == BaseType.Obj)
                 {
@@ -380,28 +386,28 @@ namespace {_namespace}
             }
 
             return $@"
-            if({field.name} == null)
-            {{
-                delta.{field.name} = null;
-                delta.{field.name}Delta = null;
-                if(original.{field.name} != null)
+                if({field.name} == null)
                 {{
+                    delta.{field.name} = null;
+                    delta.{field.name}Delta = null;
+                    if(original.{field.name} != null)
+                    {{
+                        {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
+                    }}
+                }}
+                else if(original.{field.name} == null || {field.name}.Value.Discriminator != original.{field.name}.Value.Discriminator)
+                {{
+                    delta.{field.name} = {field.name}?.Base;
+                    delta.{field.name}Delta = null;
                     {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
                 }}
-            }}
-            else if(original.{field.name} == null || {field.name}.Value.Discriminator != original.{field.name}.Value.Discriminator)
-            {{
-                delta.{field.name} = {field.name}?.Base;
-                delta.{field.name}Delta = null;
-                {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
-            }}
-            else
-            {{
-                switch({field.name}.Value.Discriminator)
+                else
                 {{
-                    {discriminators}
+                    switch({field.name}.Value.Discriminator)
+                    {{
+                        {discriminators}
+                    }}
                 }}
-            }}
             ";
         }
 
@@ -479,48 +485,48 @@ namespace {_namespace}
             });
 
             return $@"
-        public void ApplyDelta({name}Delta? delta)
-        {{
-            if(delta == null)
-            {{
-                return;
-            }}
-
-            IReadOnlyList<byte>? byteFields = delta.ByteFields;
-
-            if(byteFields != null)
-            {{
-                int count = byteFields.Count;
-
-                for(int i = 0; i < count; i++)
+                public void ApplyDelta({name}Delta? delta)
                 {{
-                    byte field = byteFields[i];
-                    switch(field)
+                    if(delta == null)
                     {{
-                        {byteCases}
+                        return;
                     }}
-                }}
-            }}
 
-            {(obj.fields.Count > 255 ? $@"
-            IReadOnlyList<ushort>? shortFields = delta.ShortFields;
+                    IReadOnlyList<byte>? byteFields = delta.ByteFields;
 
-            if(shortFields != null)
-            {{
-                int count = shortFields.Count;
-
-                for(int i = 0; i < count; i++)
-                {{
-                    ushort field = shortFields[i];
-                    switch(field)
+                    if(byteFields != null)
                     {{
-                        {shortCases}
+                        int count = byteFields.Count;
+
+                        for(int i = 0; i < count; i++)
+                        {{
+                            byte field = byteFields[i];
+                            switch(field)
+                            {{
+                                {byteCases}
+                            }}
+                        }}
                     }}
+
+                    {(obj.fields.Count > 255 ? $@"
+                    IReadOnlyList<ushort>? shortFields = delta.ShortFields;
+
+                    if(shortFields != null)
+                    {{
+                        int count = shortFields.Count;
+
+                        for(int i = 0; i < count; i++)
+                        {{
+                            ushort field = shortFields[i];
+                            switch(field)
+                            {{
+                                {shortCases}
+                            }}
+                        }}
+                    }}
+                    " :
+                    String.Empty)}
                 }}
-            }}
-            " :
-            String.Empty)}
-        }}
             ";
         }
 
@@ -533,14 +539,15 @@ namespace {_namespace}
                 bool isUnion = field.type.base_type == BaseType.Union;
 
                 assignments += $@"
-            original.{field.name} = {field.name}{(isUnion ? "?.Base" : String.Empty)};";
+                    original.{field.name} = {field.name}{(isUnion ? "?.Base" : String.Empty)};
+                ";
             });
 
             return $@"
-        private void UpdateInternalReferenceState()
-        {{
-            {assignments}
-        }}
+                private void UpdateInternalReferenceState()
+                {{
+                    {assignments}
+                }}
             ";
         }
 
@@ -553,16 +560,17 @@ namespace {_namespace}
                 if(CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
                 {
                     calls += $@"
-            {field.name}?.UpdateReferenceState();";
+                        {field.name}?.UpdateReferenceState();
+                    ";
                 }
             });
 
             return $@"
-        public void UpdateInternalReferenceState()
-        {{
-            UpdateInternalReferenceState();
-            {calls}
-        }}
+                public void UpdateInternalReferenceState()
+                {{
+                    UpdateInternalReferenceState();
+                    {calls}
+                }}
             ";
         }
 
@@ -579,19 +587,19 @@ namespace {_namespace}
                     CodeWriterUtils.GetPropertyBaseListType(schema, field.type, field.optional);
                 
                 properties += $@"
-            public new {baseType} {field.name}
-            {{
-                get => base.{field.name};
-                set => base.{field.name} = value;
-            }}
+                    public new {baseType} {field.name}
+                    {{
+                        get => base.{field.name};
+                        set => base.{field.name} = value;
+                    }}
                 ";
             });
 
             return $@"
-        private class MutableBase{name} : Base{name}
-        {{
-            {properties}
-        }}
+                private class MutableBase{name} : Base{name}
+                {{
+                    {properties}
+                }}
             ";
         }
 
@@ -608,11 +616,11 @@ namespace {_namespace}
                     CodeWriterUtils.GetPropertyBaseListType(schema, field.type, field.optional);
                 
                 properties += $@"
-            public new {baseType} {field.name}
-            {{
-                get => base.{field.name};
-                set => base.{field.name} = value;
-            }}
+                    public new {baseType} {field.name}
+                    {{
+                        get => base.{field.name};
+                        set => base.{field.name} = value;
+                    }}
                 ";
 
                 if(CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
@@ -622,45 +630,45 @@ namespace {_namespace}
                         CodeWriterUtils.GetPropertyDeltaListType(schema, field.type);
 
                     properties += $@"
-            public new {deltaType} {field.name}Delta
-            {{
-                get => base.{field.name}Delta;
-                set => base.{field.name}Delta = value;
-            }}
+                        public new {deltaType} {field.name}Delta
+                        {{
+                            get => base.{field.name}Delta;
+                            set => base.{field.name}Delta = value;
+                        }}
                     ";
                 }
             });
 
             return $@"
-        private class Mutable{name}Delta : {name}Delta
-        {{
-            private List<byte>? _ByteFields {{ get; set; }}
-            public new List<byte>? ByteFields
-            {{
-                get => _ByteFields;
-                set
+                private class Mutable{name}Delta : {name}Delta
                 {{
-                    _ByteFields = value;
-                    base.ByteFields = value;
-                }}
-            }}
+                    private List<byte>? _ByteFields {{ get; set; }}
+                    public new List<byte>? ByteFields
+                    {{
+                        get => _ByteFields;
+                        set
+                        {{
+                            _ByteFields = value;
+                            base.ByteFields = value;
+                        }}
+                    }}
 
-            {(obj.fields.Count > 255 ? $@"
-            private List<ushort>? _ShortFields {{ get; set; }}
-            public new List<ushort>? ShortFields
-            {{
-                get => _ShortFields;
-                set
-                {{
-                    _ShortFields = value;
-                    base.ShortFields = value;
-                }}
-            }}
-            " :
-            String.Empty)}
+                    {(obj.fields.Count > 255 ? $@"
+                    private List<ushort>? _ShortFields {{ get; set; }}
+                    public new List<ushort>? ShortFields
+                    {{
+                        get => _ShortFields;
+                        set
+                        {{
+                            _ShortFields = value;
+                            base.ShortFields = value;
+                        }}
+                    }}
+                    " :
+                    String.Empty)}
 
-            {properties}
-        }}
+                    {properties}
+                }}
             ";
         }
 
@@ -669,40 +677,40 @@ namespace {_namespace}
             string name = obj.GetNameWithoutNamespace();
 
             return $@"
-        private class {name}Serializer : ISerializer<{name}>
-        {{
-            private ISerializer<Base{name}> baseSerializer;
-            private Type _RootType = typeof({name});
-            public Type RootType {{ get => _RootType; }}
-            public string? CSharp {{ get => null; }}
-            public Assembly? Assembly {{ get => null; }}
-            public byte[]? AssemblyBytes {{ get => null; }}
-            public FlatBufferDeserializationOption DeserializationOption {{ get => FlatBufferDeserializationOption.GreedyMutable; }}
+                private class {name}Serializer : ISerializer<{name}>
+                {{
+                    private ISerializer<Base{name}> baseSerializer;
+                    private Type _RootType = typeof({name});
+                    public Type RootType {{ get => _RootType; }}
+                    public string? CSharp {{ get => null; }}
+                    public Assembly? Assembly {{ get => null; }}
+                    public byte[]? AssemblyBytes {{ get => null; }}
+                    public FlatBufferDeserializationOption DeserializationOption {{ get => FlatBufferDeserializationOption.GreedyMutable; }}
 
-            public {name}Serializer()
-            {{
-                baseSerializer = Base{name}.Serializer;
-            }}
+                    public {name}Serializer()
+                    {{
+                        baseSerializer = Base{name}.Serializer;
+                    }}
 
-            public {name}Serializer(ISerializer<Base{name}> baseSerializer)
-            {{
-                this.baseSerializer = baseSerializer;
-            }}
+                    public {name}Serializer(ISerializer<Base{name}> baseSerializer)
+                    {{
+                        this.baseSerializer = baseSerializer;
+                    }}
 
-            public int GetMaxSize({name} item) => baseSerializer.GetMaxSize(item);
+                    public int GetMaxSize({name} item) => baseSerializer.GetMaxSize(item);
 
-            public int GetMaxSize(object item) => baseSerializer.GetMaxSize(item);
+                    public int GetMaxSize(object item) => baseSerializer.GetMaxSize(item);
 
-            public int Write<TSpanWriter>(TSpanWriter writer, Span<byte> destination, {name} item) where TSpanWriter : ISpanWriter => baseSerializer.Write(writer, destination, item);
+                    public int Write<TSpanWriter>(TSpanWriter writer, Span<byte> destination, {name} item) where TSpanWriter : ISpanWriter => baseSerializer.Write(writer, destination, item);
 
-            public int Write<TSpanWriter>(TSpanWriter writer, Span<byte> destination, object item) where TSpanWriter : ISpanWriter => baseSerializer.Write(writer, destination, item);
+                    public int Write<TSpanWriter>(TSpanWriter writer, Span<byte> destination, object item) where TSpanWriter : ISpanWriter => baseSerializer.Write(writer, destination, item);
 
-            public {name} Parse<TInputBuffer>(TInputBuffer buffer) where TInputBuffer : IInputBuffer => new {name}(baseSerializer.Parse<TInputBuffer>(buffer));
+                    public {name} Parse<TInputBuffer>(TInputBuffer buffer) where TInputBuffer : IInputBuffer => new {name}(baseSerializer.Parse<TInputBuffer>(buffer));
 
-            object ISerializer.Parse<TInputBuffer>(TInputBuffer buffer) => new {name}(baseSerializer.Parse<TInputBuffer>(buffer));
+                    object ISerializer.Parse<TInputBuffer>(TInputBuffer buffer) => new {name}(baseSerializer.Parse<TInputBuffer>(buffer));
 
-            public ISerializer<{name}> WithSettings(SerializerSettings settings) => new {name}Serializer(baseSerializer.WithSettings(settings));
-        }}
+                    public ISerializer<{name}> WithSettings(SerializerSettings settings) => new {name}Serializer(baseSerializer.WithSettings(settings));
+                }}
             ";
         }
     }
