@@ -425,13 +425,28 @@ namespace FlatSharpDelta.Compiler
                 string _case = String.Empty;
                 string deltaCase = String.Empty;
                 bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
+                bool nullCoalescing = false;
+
+                // The "nullCoalescing" variable above and its' associated code (in the following two if-blocks below) is
+                // the only reference-struct specific code as part of TableCodeWriter. All the other code this class
+                // generates should be the same for tables and reference structs.
+                
+                if(obj.is_struct && field.type.base_type == BaseType.Obj)
+                {
+                    reflection.Object fieldObj = schema.objects[field.type.index];
+                    nullCoalescing = fieldObj.is_struct && fieldObj.HasAttribute("fs_valueStruct");
+                }
 
                 if(!CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
                 {
+                    // The "nullCoalescing" variable in the below string is used because struct fields in reference structs
+                    // are not optional. The generated delta schema, however, is a table, in which the struct is optional.
+                    // Therefore we need to use the null-coalescing operator to fall back to the current value when it is null.
+
                     _case = $@"
                         case {field.name}_Index:
                         {{
-                            {field.name} = delta.{field.name};
+                            {field.name} = delta.{field.name}{(nullCoalescing ? $" ?? {field.name}" : String.Empty)};
                             break;
                         }}
                     ";

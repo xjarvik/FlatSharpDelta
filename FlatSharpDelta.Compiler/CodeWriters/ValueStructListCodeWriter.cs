@@ -5,7 +5,7 @@ using reflection;
 
 namespace FlatSharpDelta.Compiler
 {
-    static class TableListCodeWriter
+    static class ValueStructListCodeWriter
     {
         public static string WriteCode(Schema schema, reflection.Object obj)
         {
@@ -13,44 +13,44 @@ namespace FlatSharpDelta.Compiler
             string _namespace = obj.GetNamespace();
 
             return $@"
-                namespace {_namespace} {{
+                namespace Schemas {{
                     using {_namespace}.SupportingTypes;
-                    using BaseT = {_namespace}.SupportingTypes.Base{name};
                     using T = {_namespace}.{name};
-                    using TDelta = {_namespace}.{name}Delta;
                     using TListDelta = {_namespace}.{name}ListDelta;
 
-                    public class {name}List : IReadOnlyList<BaseT>, IList<T> {{
+                    public class {name}List : IReadOnlyList<T>, IList<T> {{
                         private List<ListItem> listItems;
                         private List<MutableTListDelta> deltasToReturn;
                         private ReadOnlyCollection<MutableTListDelta> deltasToReturnReadOnly;
-                        private LinkedList<MutableTListDelta> deltas;
+                        private LinkedList<MutableTListDelta> deltaNodes;
                         private Stack<MutableTListDelta> deltaPool;
-                        private Stack<LinkedListNode<MutableTListDelta>> deltasNodePool;
-                        private Stack<LinkedList<LinkedListNode<MutableTListDelta>>> listItemDeltasPool;
-                        private Stack<LinkedListNode<LinkedListNode<MutableTListDelta>>> listItemDeltasNodePool;
+                        private Stack<LinkedListNode<MutableTListDelta>> deltaNodePool;
+                        private Stack<object> identifierPool;
                         public int Capacity {{
                             get => listItems.Capacity;
                             set => listItems.Capacity = value;
                         }}
                         public int Count {{ get => listItems.Count; }}
                         public bool IsReadOnly {{ get => false; }}
-                        BaseT IReadOnlyList<BaseT>.this[int index] {{
+                        T IReadOnlyList<T>.this[int index] {{
                             get => this[index];
                         }}
                         public T this[int index] {{
                             get => listItems[index].Value;
                             set {{
                                 ListItem listItem = listItems[index];
-                                if(value != listItem.Value){{
-                                    listItems[index] = new ListItem(value, listItem.Deltas);
-                                    MutableTListDelta delta = GetValueFromDeltaPool();
+                                if(!value.IsEqualTo(listItem.Value)){{
+                                    MutableTListDelta delta = GetValueFromDeltaPool(listItem.Identifier);
                                     delta.Operation = ListOperation.Replace;
                                     delta.CurrentIndex = index;
                                     delta.BaseValue = value;
-                                    LinkedListNode<MutableTListDelta> node = GetValueFromDeltasNodePool(delta);
-                                    deltas.AddLast(node);
-                                    listItem.Deltas.AddLast(GetValueFromListItemDeltasNodePool(node));
+                                    LinkedListNode<MutableTListDelta> deltaNode = GetValueFromDeltaNodePool(delta);
+                                    listItems[index] = new ListItem(listItem.Identifier, value, deltaNode);
+                                    MutableTListDelta? lastDelta = listItem.LastDeltaNode?.Value;
+                                    if(lastDelta != null && lastDelta.Identifier == listItem.Identifier){{
+                                        lastDelta.NextDeltaNode = deltaNode;
+                                    }}
+                                    deltaNodes.AddLast(deltaNode);
                                 }}
                             }}
                         }}
@@ -58,11 +58,10 @@ namespace FlatSharpDelta.Compiler
                         private void Initialize(){{
                             deltasToReturn = new List<MutableTListDelta>();
                             deltasToReturnReadOnly = new ReadOnlyCollection<MutableTListDelta>(deltasToReturn);
-                            deltas = new LinkedList<MutableTListDelta>();
+                            deltaNodes = new LinkedList<MutableTListDelta>();
                             deltaPool = new Stack<MutableTListDelta>();
-                            deltasNodePool = new Stack<LinkedListNode<MutableTListDelta>>();
-                            listItemDeltasPool = new Stack<LinkedList<LinkedListNode<MutableTListDelta>>>();
-                            listItemDeltasNodePool = new Stack<LinkedListNode<LinkedListNode<MutableTListDelta>>>();
+                            deltaNodePool = new Stack<LinkedListNode<MutableTListDelta>>();
+                            identifierPool = new Stack<object>();
                         }}
 
                 #pragma warning disable CS8618
@@ -78,13 +77,13 @@ namespace FlatSharpDelta.Compiler
                             listItems = new List<ListItem>(capacity);
                         }}
 
-                        public {name}List(IReadOnlyList<BaseT> list){{
+                        public {name}List(IReadOnlyList<T> list){{
                             Initialize();
 
                             int count = list.Count;
                             listItems = new List<ListItem>(count);
                             for(int i = 0; i < count; i++){{
-                                listItems.Add(new ListItem(new T(list[i]), new LinkedList<LinkedListNode<MutableTListDelta>>()));
+                                listItems.Add(new ListItem(new object(), list[i], null));
                             }}
                         }}
 
@@ -94,35 +93,29 @@ namespace FlatSharpDelta.Compiler
                             int count = list.Count;
                             listItems = new List<ListItem>(count);
                             for(int i = 0; i < count; i++){{
-                                listItems.Add(new ListItem(new T(list[i]), new LinkedList<LinkedListNode<MutableTListDelta>>()));
+                                listItems.Add(new ListItem(new object(), list[i], null));
                             }}
                         }}
                 #pragma warning restore CS8618
 
                         public void Add(T item){{
-                            ListItem listItem = new ListItem(item, GetValueFromListItemDeltasPool());
-                            listItems.Add(listItem);
-                            MutableTListDelta delta = GetValueFromDeltaPool();
+                            object identifier = GetValueFromIdentifierPool();
+                            MutableTListDelta delta = GetValueFromDeltaPool(identifier);
                             delta.Operation = ListOperation.Insert;
-                            delta.NewIndex = listItems.Count - 1;
+                            delta.NewIndex = listItems.Count;
                             delta.BaseValue = item;
-                            LinkedListNode<MutableTListDelta> node = GetValueFromDeltasNodePool(delta);
-                            deltas.AddLast(node);
-                            listItem.Deltas.AddLast(GetValueFromListItemDeltasNodePool(node));
+                            LinkedListNode<MutableTListDelta> deltaNode = GetValueFromDeltaNodePool(delta);
+                            listItems.Add(new ListItem(identifier, item, deltaNode));
+                            deltaNodes.AddLast(deltaNode);
                         }}
 
                         public void Clear(){{
-                            for(int i = listItems.Count - 1; i >= 0; i--){{
-                                ListItem listItem = listItems[i];
-                                ClearListItemDeltas(listItem.Deltas);
-                                listItemDeltasPool.Push(listItem.Deltas);
-                                listItems.RemoveAt(i);
-                            }}
-                            ClearDeltas();
-                            MutableTListDelta delta = GetValueFromDeltaPool();
+                            listItems.Clear();
+                            ClearDeltaNodes();
+                            MutableTListDelta delta = GetValueFromDeltaPool(null!);
                             delta.Operation = ListOperation.Clear;
-                            LinkedListNode<MutableTListDelta> node = GetValueFromDeltasNodePool(delta);
-                            deltas.AddLast(node);
+                            LinkedListNode<MutableTListDelta> deltaNode = GetValueFromDeltaNodePool(delta);
+                            deltaNodes.AddLast(deltaNode);
                         }}
 
                         public bool Contains(T item) => IndexOf(item) >= 0;
@@ -145,7 +138,7 @@ namespace FlatSharpDelta.Compiler
                         
                         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-                        IEnumerator<BaseT> IEnumerable<BaseT>.GetEnumerator() => GetEnumerator();
+                        IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
 
                         public IEnumerator<T> GetEnumerator(){{
                             for(int i = 0; i < listItems.Count; i++){{
@@ -155,7 +148,7 @@ namespace FlatSharpDelta.Compiler
 
                         public int IndexOf(T item){{
                             for(int i = 0; i < listItems.Count; i++){{
-                                if(listItems[i].Value == item){{
+                                if(listItems[i].Value.IsEqualTo(item)){{
                                     return i;
                                 }}
                             }}
@@ -163,28 +156,31 @@ namespace FlatSharpDelta.Compiler
                         }}
 
                         public void Insert(int index, T item){{
-                            ListItem listItem = new ListItem(item, GetValueFromListItemDeltasPool());
-                            listItems.Insert(index, listItem);
-                            MutableTListDelta delta = GetValueFromDeltaPool();
+                            object identifier = GetValueFromIdentifierPool();
+                            MutableTListDelta delta = GetValueFromDeltaPool(identifier);
                             delta.Operation = ListOperation.Insert;
                             delta.NewIndex = index;
                             delta.BaseValue = item;
-                            LinkedListNode<MutableTListDelta> node = GetValueFromDeltasNodePool(delta);
-                            deltas.AddLast(node);
-                            listItem.Deltas.AddLast(GetValueFromListItemDeltasNodePool(node));
+                            LinkedListNode<MutableTListDelta> deltaNode = GetValueFromDeltaNodePool(delta);
+                            listItems.Insert(index, new ListItem(identifier, item, deltaNode));
+                            deltaNodes.AddLast(deltaNode);
                         }}
 
                         public void Move(int currentIndex, int newIndex){{
                             ListItem listItem = listItems[currentIndex];
-                            listItems.RemoveAt(currentIndex);
-                            listItems.Insert(newIndex > currentIndex ? newIndex - 1 : newIndex, listItem);
-                            MutableTListDelta delta = GetValueFromDeltaPool();
+                            MutableTListDelta delta = GetValueFromDeltaPool(listItem.Identifier);
                             delta.Operation = ListOperation.Move;
                             delta.CurrentIndex = currentIndex;
                             delta.NewIndex = newIndex;
-                            LinkedListNode<MutableTListDelta> node = GetValueFromDeltasNodePool(delta);
-                            deltas.AddLast(node);
-                            listItem.Deltas.AddLast(GetValueFromListItemDeltasNodePool(node));
+                            LinkedListNode<MutableTListDelta> deltaNode = GetValueFromDeltaNodePool(delta);
+                            MutableTListDelta? lastDelta = listItem.LastDeltaNode?.Value;
+                            listItem.LastDeltaNode = deltaNode;
+                            listItems.RemoveAt(currentIndex);
+                            listItems.Insert(newIndex > currentIndex ? newIndex - 1 : newIndex, listItem);
+                            if(lastDelta != null && lastDelta.Identifier == listItem.Identifier){{
+                                lastDelta.NextDeltaNode = deltaNode;
+                            }}
+                            deltaNodes.AddLast(deltaNode);
                         }}
 
                         public bool Remove(T item){{
@@ -199,135 +195,61 @@ namespace FlatSharpDelta.Compiler
                         public void RemoveAt(int index){{
                             ListItem listItem = listItems[index];
                             listItems.RemoveAt(index);
-                            MutableTListDelta delta = GetValueFromDeltaPool();
+                            MutableTListDelta delta = GetValueFromDeltaPool(listItem.Identifier);
                             delta.Operation = ListOperation.Remove;
                             delta.CurrentIndex = index;
-                            LinkedListNode<MutableTListDelta> node = GetValueFromDeltasNodePool(delta);
-                            deltas.AddLast(node);
-                            listItem.Deltas.AddLast(GetValueFromListItemDeltasNodePool(node));
-                            FinalizeListItemDeltas(listItem, index);
-                            ClearListItemDeltas(listItem.Deltas);
-                            listItemDeltasPool.Push(listItem.Deltas);
+                            LinkedListNode<MutableTListDelta> deltaNode = GetValueFromDeltaNodePool(delta);
+                            MutableTListDelta? lastDelta = listItem.LastDeltaNode?.Value;
+                            if(lastDelta != null && lastDelta.Identifier == listItem.Identifier){{
+                                lastDelta.NextDeltaNode = deltaNode;
+                            }}
+                            deltaNodes.AddLast(deltaNode);
+                            identifierPool.Push(listItem.Identifier);
                         }}
 
-                        private enum OptimizationResult {{ _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12 }}
+                        private enum OptimizationResult {{
+                            RemovedNone,
+                            RemovedCurrent,
+                            RemovedNext,
+                            RemovedBoth
+                        }}
 
                         public IReadOnlyList<TListDelta>? GetDelta(){{
-                            for(int i = 0; i < listItems.Count; i++){{
-                                FinalizeListItemDeltas(listItems[i], i);
+                            LinkedListNode<MutableTListDelta>? currentDeltaNode = deltaNodes.First;
+                            LinkedListNode<MutableTListDelta>? nextDeltaNode;
+                            LinkedListNode<MutableTListDelta>? lastFinalizedDeltaNode = null;
+                            while(currentDeltaNode != deltaNodes.Last){{
+                                nextDeltaNode = currentDeltaNode?.Value.NextDeltaNode;
+                                if(nextDeltaNode == null){{
+                                    lastFinalizedDeltaNode = currentDeltaNode;
+                                    currentDeltaNode = currentDeltaNode?.Next;
+                                    continue;
+                                }}
+
+                                switch(OptimizeDelta(currentDeltaNode!, nextDeltaNode)){{
+                                    case OptimizationResult.RemovedNone:
+                                    case OptimizationResult.RemovedNext:
+                                        lastFinalizedDeltaNode = currentDeltaNode;
+                                        currentDeltaNode = currentDeltaNode?.Next;
+                                        break;
+                                    case OptimizationResult.RemovedCurrent:
+                                    case OptimizationResult.RemovedBoth:
+                                        if(lastFinalizedDeltaNode != null){{
+                                            currentDeltaNode = lastFinalizedDeltaNode?.Next;
+                                        }}
+                                        else{{
+                                            currentDeltaNode = deltaNodes.First;
+                                        }}
+                                        break;
+                                }}
                             }}
 
                             deltasToReturn.Clear();
-                            if(deltasToReturn.Capacity < deltas.Count){{
-                                deltasToReturn.Capacity = deltas.Count;
+                            if(deltasToReturn.Capacity < deltaNodes.Count){{
+                                deltasToReturn.Capacity = deltaNodes.Count;
                             }}
-                            deltasToReturn.AddRange(deltas);
+                            deltasToReturn.AddRange(deltaNodes);
                             return deltasToReturnReadOnly.Count > 0 ? deltasToReturnReadOnly : null;
-                        }}
-
-                        private void FinalizeListItemDeltas(in ListItem listItem, int index){{
-                            LinkedList<LinkedListNode<MutableTListDelta>> listItemDeltas = listItem.Deltas;
-                            LinkedListNode<LinkedListNode<MutableTListDelta>>? currentNode = listItemDeltas.First;
-                            LinkedListNode<LinkedListNode<MutableTListDelta>>? nextNode = currentNode?.Next;
-                            LinkedListNode<LinkedListNode<MutableTListDelta>>? tempNode;
-                            bool ignoreModify = false;
-                            while(currentNode != listItemDeltas.Last){{
-                                switch(OptimizeDelta(currentNode!.Value, nextNode!.Value)){{
-                                    case OptimizationResult._1:
-                                        listItemDeltasNodePool.Push(nextNode);
-                                        listItemDeltas.Remove(nextNode);
-                                        nextNode = currentNode.Next;
-                                        break;
-                                    case OptimizationResult._2:
-                                        tempNode = nextNode.Next;
-                                        listItemDeltasNodePool.Push(nextNode);
-                                        listItemDeltas.Remove(nextNode);
-                                        nextNode = tempNode;
-                                        break;
-                                    case OptimizationResult._3:
-                                        currentNode = null;
-                                        ignoreModify = true;
-                                        break;
-                                    case OptimizationResult._5:
-                                    case OptimizationResult._6:
-                                    case OptimizationResult._8:
-                                    case OptimizationResult._11:
-                                        tempNode = currentNode.Next;
-                                        listItemDeltasNodePool.Push(currentNode);
-                                        listItemDeltas.Remove(currentNode);
-                                        currentNode = tempNode;
-                                        nextNode = tempNode?.Next;
-                                        break;
-                                    case OptimizationResult._7:
-                                    case OptimizationResult._9:
-                                    case OptimizationResult._12:
-                                        if(nextNode.Next == null){{
-                                            currentNode = currentNode.Next;
-                                            nextNode = currentNode?.Next;
-                                        }}
-                                        else{{
-                                            nextNode = nextNode.Next;
-                                        }}
-                                        break;
-                                    case OptimizationResult._4:
-                                    case OptimizationResult._10:
-                                        break;
-                                }}
-                                if(ignoreModify){{
-                                    break;
-                                }}
-                            }}
-                            if(!ignoreModify){{
-                                LinkedListNode<LinkedListNode<MutableTListDelta>>? firstNode = listItemDeltas.First;
-                                LinkedListNode<LinkedListNode<MutableTListDelta>>? lastNode = listItemDeltas.Last;
-                                ListOperation? firstOperation = firstNode?.Value.Value.Operation;
-                                ListOperation? lastOperation = lastNode?.Value.Value.Operation;
-                                if(listItemDeltas.Count == 0){{
-                                    AddModifyDelta(listItem, index);
-                                }}
-                                else if(listItemDeltas.Count == 1){{
-                                    if(firstOperation == ListOperation.Modify){{
-                                        UpdateModifyDelta(listItem, firstNode!);
-                                    }}
-                                    else if(firstOperation == ListOperation.Move){{
-                                        AddModifyDelta(listItem, index);
-                                    }}
-                                }}
-                                else if(listItemDeltas.Count == 2){{
-                                    if(firstOperation == ListOperation.Modify){{
-                                        UpdateModifyDelta(listItem, firstNode!);
-                                    }}
-                                    else if(lastOperation == ListOperation.Modify){{
-                                        UpdateModifyDelta(listItem, lastNode!);
-                                    }}
-                                }}
-                            }}
-                        }}
-
-                        private void AddModifyDelta(in ListItem listItem, int index){{
-                            TDelta? itemDelta = listItem.Value?.GetDelta();
-                            if(itemDelta != null){{
-                                MutableTListDelta delta = GetValueFromDeltaPool();
-                                delta.Operation = ListOperation.Modify;
-                                delta.CurrentIndex = index;
-                                delta.DeltaValue = itemDelta;
-                                LinkedListNode<MutableTListDelta> node = GetValueFromDeltasNodePool(delta);
-                                deltas.AddLast(node);
-                                listItem.Deltas.AddLast(GetValueFromListItemDeltasNodePool(node));
-                            }}
-                        }}
-
-                        private void UpdateModifyDelta(in ListItem listItem, LinkedListNode<LinkedListNode<MutableTListDelta>> node){{
-                            TDelta? itemDelta = listItem.Value?.GetDelta();
-                            if(itemDelta != null){{
-                                node.Value.Value.DeltaValue = itemDelta;
-                            }}
-                            else{{
-                                deltas.Remove(node.Value);
-                                listItem.Deltas.Remove(node);
-                                ClearDeltasNode(node.Value);
-                                listItemDeltasNodePool.Push(node);
-                            }}
                         }}
 
                         private OptimizationResult OptimizeDelta(LinkedListNode<MutableTListDelta> current, LinkedListNode<MutableTListDelta> next){{
@@ -335,8 +257,7 @@ namespace FlatSharpDelta.Compiler
                                 case ListOperation.Insert: return OptimizeInsert(current, next);
                                 case ListOperation.Move: return OptimizeMove(current, next);
                                 case ListOperation.Replace: return OptimizeReplace(current, next);
-                                case ListOperation.Modify: return OptimizeModify(current, next);
-                                default: return OptimizationResult._10;
+                                default: return OptimizationResult.RemovedNone;
                             }}
                         }}
 
@@ -361,17 +282,19 @@ namespace FlatSharpDelta.Compiler
                                     after = after.Next!;
                                 }}
                                 current.Value.NewIndex = next.Value.NewIndex;
-                                deltas.Remove(current);
-                                deltas.AddAfter(next, current);
-                                ClearDeltasNode(next);
-                                deltas.Remove(next);
-                                return OptimizationResult._1;
+                                current.Value.NextDeltaNode = next.Value.NextDeltaNode;
+                                deltaNodes.Remove(current);
+                                deltaNodes.AddAfter(next, current);
+                                ClearDeltaNode(next);
+                                deltaNodes.Remove(next);
+                                return OptimizationResult.RemovedBoth;
                             }}
                             else if(next.Value.Operation == ListOperation.Replace){{
                                 current.Value.BaseValue = next.Value.BaseValue;
-                                ClearDeltasNode(next);
-                                deltas.Remove(next);
-                                return OptimizationResult._2;
+                                current.Value.NextDeltaNode = next.Value.NextDeltaNode;
+                                ClearDeltaNode(next);
+                                deltaNodes.Remove(next);
+                                return OptimizationResult.RemovedNext;
                             }}
                             else if(next.Value.Operation == ListOperation.Remove){{
                                 int myIndex = originalIndex;
@@ -390,20 +313,20 @@ namespace FlatSharpDelta.Compiler
                                     }}
                                     after = after.Next!;
                                 }}
-                                ClearDeltasNode(current);
-                                ClearDeltasNode(next);
-                                deltas.Remove(current);
-                                deltas.Remove(next);
-                                return OptimizationResult._3;
+                                ClearDeltaNode(current);
+                                ClearDeltaNode(next);
+                                deltaNodes.Remove(current);
+                                deltaNodes.Remove(next);
+                                return OptimizationResult.RemovedBoth;
                             }}
-                            return OptimizationResult._4;
+                            return OptimizationResult.RemovedNone;
                         }}
 
                         private OptimizationResult OptimizeMove(LinkedListNode<MutableTListDelta> current, LinkedListNode<MutableTListDelta> next){{
                             if(current.Value.CurrentIndex == current.Value.NewIndex || current.Value.CurrentIndex == current.Value.NewIndex - 1){{
-                                ClearDeltasNode(current);
-                                deltas.Remove(current);
-                                return OptimizationResult._5;
+                                ClearDeltaNode(current);
+                                deltaNodes.Remove(current);
+                                return OptimizationResult.RemovedCurrent;
                             }}
                             int currentIndex = current.Value.CurrentIndex > current.Value.NewIndex ? current.Value.CurrentIndex + 1 : current.Value.CurrentIndex;
                             int newIndex = current.Value.NewIndex > current.Value.CurrentIndex ? current.Value.NewIndex - 1 : current.Value.NewIndex;
@@ -441,29 +364,20 @@ namespace FlatSharpDelta.Compiler
                                     after = after.Next!;
                                 }}
                                 next.Value.CurrentIndex = current.Value.CurrentIndex > current.Value.NewIndex ? myCurrentIndex - 1 : myCurrentIndex;
-                                ClearDeltasNode(current);
-                                deltas.Remove(current);
-                                return OptimizationResult._6;
+                                ClearDeltaNode(current);
+                                deltaNodes.Remove(current);
+                                return OptimizationResult.RemovedCurrent;
                             }}
-                            return OptimizationResult._7;
+                            return OptimizationResult.RemovedNone;
                         }}
 
                         private OptimizationResult OptimizeReplace(LinkedListNode<MutableTListDelta> current, LinkedListNode<MutableTListDelta> next){{
                             if(next.Value.Operation == ListOperation.Replace || next.Value.Operation == ListOperation.Remove){{
-                                ClearDeltasNode(current);
-                                deltas.Remove(current);
-                                return OptimizationResult._8;
+                                ClearDeltaNode(current);
+                                deltaNodes.Remove(current);
+                                return OptimizationResult.RemovedCurrent;
                             }}
-                            return OptimizationResult._9;
-                        }}
-
-                        private OptimizationResult OptimizeModify(LinkedListNode<MutableTListDelta> current, LinkedListNode<MutableTListDelta> next){{
-                            if(next.Value.Operation != ListOperation.Move){{
-                                ClearDeltasNode(current);
-                                deltas.Remove(current);
-                                return OptimizationResult._11;
-                            }}
-                            return OptimizationResult._12;
+                            return OptimizationResult.RemovedNone;
                         }}
 
                         private int GetUpdatedIndex(TListDelta delta, int index, bool ignoreMove = false){{
@@ -507,14 +421,8 @@ namespace FlatSharpDelta.Compiler
                                 case ListOperation.Insert: {{
                                     int newIndex = delta.NewIndex;
                                     if(!NewIndexIsValid(newIndex)) return;
-                                    BaseT? baseValue = delta.BaseValue;
-                                    Insert(newIndex, baseValue != null ? new T(baseValue) : null!);
-                                    break;
-                                }}
-                                case ListOperation.Modify: {{
-                                    int currentIndex = delta.CurrentIndex;
-                                    if(!CurrentIndexIsValid(currentIndex)) return;
-                                    listItems[currentIndex].Value?.ApplyDelta(delta.DeltaValue);
+                                    T? baseValue = delta.BaseValue;
+                                    if(baseValue.HasValue) Insert(newIndex, baseValue.Value);
                                     break;
                                 }}
                                 case ListOperation.Move: {{
@@ -528,8 +436,8 @@ namespace FlatSharpDelta.Compiler
                                 case ListOperation.Replace: {{
                                     int currentIndex = delta.CurrentIndex;
                                     if(!CurrentIndexIsValid(currentIndex)) return;
-                                    BaseT? baseValue = delta.BaseValue;
-                                    this[currentIndex] = baseValue != null ? new T(baseValue) : null!;
+                                    T? baseValue = delta.BaseValue;
+                                    if(baseValue.HasValue) this[currentIndex] = baseValue.Value;
                                     break;
                                 }}
                                 case ListOperation.Remove: {{
@@ -559,88 +467,76 @@ namespace FlatSharpDelta.Compiler
 
                         private bool NewIndexIsValid(in int newIndex) => newIndex >= 0 && newIndex <= listItems.Count;
 
-                        public void UpdateReferenceState(){{
-                            for(int i = 0; i < listItems.Count; i++){{
-                                ListItem listItem = listItems[i];
-                                listItem.Value?.UpdateReferenceState();
-                                ClearListItemDeltas(listItem.Deltas);
-                            }}
-                            ClearDeltas();
-                        }}
+                        public void UpdateReferenceState() => ClearDeltaNodes();
 
-                        private void ClearDeltas(){{
-                            LinkedListNode<MutableTListDelta>? node = deltas.First;
+                        private void ClearDeltaNodes(){{
+                            LinkedListNode<MutableTListDelta>? node = deltaNodes.First;
                             while(node != null){{
-                                ClearDeltasNode(node);
-                                deltas.RemoveFirst();
-                                node = deltas.First;
+                                ClearDeltaNode(node);
+                                deltaNodes.RemoveFirst();
+                                node = deltaNodes.First;
                             }}
                         }}
 
-                        private void ClearListItemDeltas(LinkedList<LinkedListNode<MutableTListDelta>> listItemDeltas){{
-                            LinkedListNode<LinkedListNode<MutableTListDelta>>? node = listItemDeltas.First;
-                            while(node != null){{
-                                listItemDeltasNodePool.Push(node);
-                                listItemDeltas.RemoveFirst();
-                                node = listItemDeltas.First;
-                            }}
-                        }}
-
-                        private void ClearDeltasNode(LinkedListNode<MutableTListDelta> node){{
-                            ResetDelta(node.Value);
-                            deltaPool.Push(node.Value);
-                            deltasNodePool.Push(node);
+                        private void ClearDeltaNode(LinkedListNode<MutableTListDelta> deltaNode){{
+                            ResetDelta(deltaNode.Value);
+                            deltaPool.Push(deltaNode.Value);
+                            deltaNodePool.Push(deltaNode);
                         }}
 
                         private void ResetDelta(MutableTListDelta delta){{
+                            delta.Identifier = null;
+                            delta.NextDeltaNode = null;
                             delta.Operation = 0;
                             delta.CurrentIndex = 0;
                             delta.NewIndex = 0;
                             delta.BaseValue = null;
-                            delta.DeltaValue = null;
                         }}
 
-                        private MutableTListDelta GetValueFromDeltaPool(){{
-                            return deltaPool.Count > 0 ? deltaPool.Pop() : new MutableTListDelta();
+                        private MutableTListDelta GetValueFromDeltaPool(object identifier){{
+                            MutableTListDelta? delta;
+                            if(deltaPool.TryPop(out delta)){{
+                                delta.Identifier = identifier;
+                            }}
+                            else{{
+                                delta = new MutableTListDelta(identifier);
+                            }}
+                            return delta;
                         }}
 
-                        private LinkedListNode<MutableTListDelta> GetValueFromDeltasNodePool(MutableTListDelta delta){{
-                            LinkedListNode<MutableTListDelta>? node;
-                            if(deltasNodePool.TryPop(out node)){{
-                                node.Value = delta;
+                        private LinkedListNode<MutableTListDelta> GetValueFromDeltaNodePool(MutableTListDelta delta){{
+                            LinkedListNode<MutableTListDelta>? deltaNode;
+                            if(deltaNodePool.TryPop(out deltaNode)){{
+                                deltaNode.Value = delta;
                             }}
                             else {{
-                                node = new LinkedListNode<MutableTListDelta>(delta);
+                                deltaNode = new LinkedListNode<MutableTListDelta>(delta);
                             }}
-                            return node;
+                            return deltaNode;
                         }}
 
-                        private LinkedList<LinkedListNode<MutableTListDelta>> GetValueFromListItemDeltasPool(){{
-                            return listItemDeltasPool.Count > 0 ? listItemDeltasPool.Pop() : new LinkedList<LinkedListNode<MutableTListDelta>>();
-                        }}
-
-                        private LinkedListNode<LinkedListNode<MutableTListDelta>> GetValueFromListItemDeltasNodePool(LinkedListNode<MutableTListDelta> delta){{
-                            LinkedListNode<LinkedListNode<MutableTListDelta>>? node;
-                            if(listItemDeltasNodePool.TryPop(out node)){{
-                                node.Value = delta;
-                            }}
-                            else {{
-                                node = new LinkedListNode<LinkedListNode<MutableTListDelta>>(delta);
-                            }}
-                            return node;
-                        }}
+                        private object GetValueFromIdentifierPool() => identifierPool.Count > 0 ? identifierPool.Pop() : new object();
 
                         private struct ListItem {{
+                            public object Identifier;
                             public T Value;
-                            public LinkedList<LinkedListNode<MutableTListDelta>> Deltas;
+                            public LinkedListNode<MutableTListDelta>? LastDeltaNode;
 
-                            public ListItem(T value, LinkedList<LinkedListNode<MutableTListDelta>> deltas){{
+                            public ListItem(object identifier, T value, LinkedListNode<MutableTListDelta>? lastDeltaNode){{
+                                Identifier = identifier;
                                 Value = value;
-                                Deltas = deltas;
+                                LastDeltaNode = lastDeltaNode;
                             }}
                         }}
 
                         private class MutableTListDelta : TListDelta {{
+                            public object? Identifier {{ get; set; }}
+                            public LinkedListNode<MutableTListDelta>? NextDeltaNode {{ get; set; }}
+
+                            public MutableTListDelta(object? identifier){{
+                                Identifier = identifier;
+                            }}
+
                             public new ListOperation Operation {{
                                 get => base.Operation;
                                 set => base.Operation = value;
@@ -656,14 +552,9 @@ namespace FlatSharpDelta.Compiler
                                 set => base.NewIndex = value;
                             }}
 
-                            public new BaseT? BaseValue {{
+                            public new T? BaseValue {{
                                 get => base.BaseValue;
                                 set => base.BaseValue = value;
-                            }}
-
-                            public new TDelta? DeltaValue {{
-                                get => base.DeltaValue;
-                                set => base.DeltaValue = value;
                             }}
                         }}
                     }}
