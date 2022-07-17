@@ -50,6 +50,19 @@ namespace FlatSharpDelta.Compiler
                 }
             }
 
+            foreach(reflection.Enum _enum in schema.enums)
+            {
+                if(_enum.is_union)
+                {
+                    code += UnionCodeWriter.WriteCode(schema, _enum);
+                    code += UnionListCodeWriter.WriteCode(schema, _enum);
+                }
+                else
+                {
+                    code += EnumListCodeWriter.WriteCode(schema, _enum);
+                }
+            }
+
             return code;
         }
     }

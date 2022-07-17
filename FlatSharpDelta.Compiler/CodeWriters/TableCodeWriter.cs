@@ -250,14 +250,7 @@ namespace FlatSharpDelta.Compiler
         private static string GetScalarDeltaComparison(Schema schema, Field field, int fieldIndex, EnumVal enumVal = null)
         {
             reflection.Type type = enumVal != null ? enumVal.union_type : field.type;
-            bool isValueStruct = false;
-
-            if(type.base_type == BaseType.Obj)
-            {
-                reflection.Object obj = schema.objects[type.index];
-                isValueStruct = obj.is_struct && obj.HasAttribute("fs_valueStruct");
-            }
-
+            bool isValueStruct = CodeWriterUtils.PropertyTypeIsValueStruct(schema, type);
             string equalityCheck = String.Empty;
 
             if(!isValueStruct)
@@ -425,23 +418,18 @@ namespace FlatSharpDelta.Compiler
                 string _case = String.Empty;
                 string deltaCase = String.Empty;
                 bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
-                bool nullCoalescing = false;
+                bool nullCoalescing = obj.is_struct && CodeWriterUtils.PropertyTypeIsValueStruct(schema, field.type);
 
-                // The "nullCoalescing" variable above and its' associated code (in the following two if-blocks below) is
+                // The "nullCoalescing" variable above and its' associated code (in the following if-block below) is
                 // the only reference-struct specific code as part of TableCodeWriter. All the other code this class
                 // generates should be the same for tables and reference structs.
-                
-                if(obj.is_struct && field.type.base_type == BaseType.Obj)
-                {
-                    reflection.Object fieldObj = schema.objects[field.type.index];
-                    nullCoalescing = fieldObj.is_struct && fieldObj.HasAttribute("fs_valueStruct");
-                }
 
                 if(!CodeWriterUtils.PropertyTypeIsDerived(schema, field.type))
                 {
                     // The "nullCoalescing" variable in the below string is used because struct fields in reference structs
                     // are not optional. The generated delta schema, however, is a table, in which the struct is optional.
-                    // Therefore we need to use the null-coalescing operator to fall back to the current value when it is null.
+                    // Therefore we need to use the null-coalescing operator to fall back to the current value when the
+                    // delta value is null.
 
                     _case = $@"
                         case {field.name}_Index:

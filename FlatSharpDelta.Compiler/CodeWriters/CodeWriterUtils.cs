@@ -333,5 +333,16 @@ namespace FlatSharpDelta.Compiler
                     return false;
             }
         }
+
+        public static bool PropertyTypeIsValueStruct(Schema schema, reflection.Type type)
+        {
+            if(type.base_type == BaseType.Obj)
+            {
+                reflection.Object obj = schema.objects[type.index];
+                return obj.is_struct && obj.HasAttribute("fs_valueStruct");
+            }
+
+            return false;
+        }
     }
 }

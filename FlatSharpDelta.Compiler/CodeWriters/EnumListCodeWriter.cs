@@ -5,12 +5,12 @@ using reflection;
 
 namespace FlatSharpDelta.Compiler
 {
-    static class ValueStructListCodeWriter
+    static class EnumListCodeWriter
     {
-        public static string WriteCode(Schema schema, reflection.Object obj)
+        public static string WriteCode(Schema schema, reflection.Enum _enum)
         {
-            string name = obj.GetNameWithoutNamespace();
-            string _namespace = obj.GetNamespace();
+            string name = _enum.GetNameWithoutNamespace();
+            string _namespace = _enum.GetNamespace();
 
             return $@"
                 namespace {_namespace} {{
@@ -39,7 +39,7 @@ namespace FlatSharpDelta.Compiler
                             get => listItems[index].Value;
                             set {{
                                 ListItem listItem = listItems[index];
-                                if(!value.IsEqualTo(listItem.Value)){{
+                                if(value != listItem.Value){{
                                     MutableTListDelta delta = GetValueFromDeltaPool(listItem.Identifier);
                                     delta.Operation = ListOperation.Replace;
                                     delta.CurrentIndex = index;
@@ -148,7 +148,7 @@ namespace FlatSharpDelta.Compiler
 
                         public int IndexOf(T item){{
                             for(int i = 0; i < listItems.Count; i++){{
-                                if(listItems[i].Value.IsEqualTo(item)){{
+                                if(listItems[i].Value == item){{
                                     return i;
                                 }}
                             }}
@@ -421,8 +421,7 @@ namespace FlatSharpDelta.Compiler
                                 case ListOperation.Insert: {{
                                     int newIndex = delta.NewIndex;
                                     if(!NewIndexIsValid(newIndex)) return;
-                                    T? baseValue = delta.BaseValue;
-                                    if(baseValue.HasValue) Insert(newIndex, baseValue.Value);
+                                    Insert(newIndex, delta.BaseValue);
                                     break;
                                 }}
                                 case ListOperation.Move: {{
@@ -436,8 +435,7 @@ namespace FlatSharpDelta.Compiler
                                 case ListOperation.Replace: {{
                                     int currentIndex = delta.CurrentIndex;
                                     if(!CurrentIndexIsValid(currentIndex)) return;
-                                    T? baseValue = delta.BaseValue;
-                                    if(baseValue.HasValue) this[currentIndex] = baseValue.Value;
+                                    this[currentIndex] = delta.BaseValue;
                                     break;
                                 }}
                                 case ListOperation.Remove: {{
@@ -490,7 +488,7 @@ namespace FlatSharpDelta.Compiler
                             delta.Operation = 0;
                             delta.CurrentIndex = 0;
                             delta.NewIndex = 0;
-                            delta.BaseValue = null;
+                            delta.BaseValue = 0;
                         }}
 
                         private MutableTListDelta GetValueFromDeltaPool(object identifier){{
@@ -552,7 +550,7 @@ namespace FlatSharpDelta.Compiler
                                 set => base.NewIndex = value;
                             }}
 
-                            public new T? BaseValue {{
+                            public new T BaseValue {{
                                 get => base.BaseValue;
                                 set => base.BaseValue = value;
                             }}
