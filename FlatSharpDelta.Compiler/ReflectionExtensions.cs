@@ -34,7 +34,7 @@ namespace FlatSharpDelta.Compiler
 
         public static KeyValue GetAttribute(this reflection.Object obj, string key) => obj.attributes != null ? obj.attributes.First(kv => kv.key == key) : null;
 
-        public static void SetAttribute(this reflection.Object obj, string key, string value)
+        public static void SetAttribute(this reflection.Object obj, string key, string value = null)
         {
             if(obj.HasAttribute(key))
             {
@@ -107,7 +107,7 @@ namespace FlatSharpDelta.Compiler
 
         public static KeyValue GetAttribute(this Field field, string key) => field.attributes != null ? field.attributes.First(kv => kv.key == key) : null;
 
-        public static void SetAttribute(this Field field, string key, string value)
+        public static void SetAttribute(this Field field, string key, string value = null)
         {
             if(field.HasAttribute(key))
             {

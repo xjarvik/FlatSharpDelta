@@ -176,19 +176,19 @@ namespace FlatSharpDelta.Compiler
                     string bfbsFilePath = Path.Combine(tempDir, Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs");
 
                     Schema originalSchema = Schema.Serializer.Parse(File.ReadAllBytes(bfbsFilePath));
-                    Schema baseSchema = BaseSchemaFactory.GetBaseSchema(originalSchema);
+                    Schema deltaSchema = DeltaSchemaFactory.GetDeltaSchema(originalSchema);
                     
                     // FlatSharp only generates code for an object if the declaration_file value equals the name of the
                     // input file where the object is defined.
-                    baseSchema.ReplaceMatchingDeclarationFiles
+                    deltaSchema.ReplaceMatchingDeclarationFiles
                     (
                         "//" + inputFile.Name,
                         "//" + Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs"
                     );
 
-                    byte[] baseBfbs = new byte[Schema.Serializer.GetMaxSize(baseSchema)];
-                    Schema.Serializer.Write(baseBfbs, baseSchema);
-                    File.WriteAllBytes(bfbsFilePath, baseBfbs);
+                    byte[] deltaSchemaBfbs = new byte[Schema.Serializer.GetMaxSize(deltaSchema)];
+                    Schema.Serializer.Write(deltaSchemaBfbs, deltaSchema);
+                    File.WriteAllBytes(bfbsFilePath, deltaSchemaBfbs);
 
                     int baseCompilerExitCode = RunBaseCompiler(startInfo.BaseCompilerFile.FullName, new string[]
                     {

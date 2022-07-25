@@ -2,6 +2,7 @@
 // The following modifications have been made in FlatSharpDelta:
 // - In the table EnumVal, the field named "object" has been renamed to "_object". Without this change, FlatSharp won't generate valid C# code because "object" is a C# keyword.
 // - Added the "fs_serializer" attribute to the "Schema" table. This is required in order for FlatSharp to generate a serializer.
+// - Added the "fs_sortedVector" attribute to the "objects" and "enums" fields in the "Schema" table. This is to sort the objects/enums by name, which is what the FlatSharp compiler expects.
 
 // This schema defines objects that represent a parsed schema, like
 // the binary version of a .fbs file.
@@ -11,6 +12,7 @@
 namespace reflection;
 
 attribute "fs_serializer";
+attribute "fs_sortedVector";
 
 // These must correspond to the enum in idl.h.
 enum BaseType : byte {
@@ -141,8 +143,8 @@ table SchemaFile {
 }
 
 table Schema (fs_serializer) {
-    objects:[Object] (required);    // Sorted.
-    enums:[Enum] (required);        // Sorted.
+    objects:[Object] (required, fs_sortedVector);    // Sorted.
+    enums:[Enum] (required, fs_sortedVector);        // Sorted.
     file_ident:string;
     file_ext:string;
     root_table:Object;
