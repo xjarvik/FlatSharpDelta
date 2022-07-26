@@ -47,15 +47,22 @@ namespace FlatSharpDelta.Compiler
                 else
                 {
                     code += ValueStructListCodeWriter.WriteCode(schema, obj);
+                    code += ValueStructExtensionsCodeWriter.WriteCode(schema, obj);
                 }
             }
 
             foreach(reflection.Enum _enum in schema.enums)
             {
+                if(_enum.declaration_file != "//" + declarationFile.Name)
+                {
+                    continue;
+                }
+
                 if(_enum.is_union)
                 {
                     code += UnionCodeWriter.WriteCode(schema, _enum);
                     code += UnionListCodeWriter.WriteCode(schema, _enum);
+                    code += UnionExtensionsCodeWriter.WriteCode(schema, _enum);
                 }
                 else
                 {

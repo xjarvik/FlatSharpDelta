@@ -13,7 +13,7 @@ namespace FlatSharpDelta.Compiler
             return new Schema
             {
                 objects = new List<reflection.Object>(GetPrimitiveListDeltaTypes(_namespace, declarationFile, 0)),
-                enums = new List<reflection.Enum> { GetListOperation(_namespace, declarationFile) },
+                enums = new List<reflection.Enum> { GetListOperation(_namespace + ".SupportingTypes", declarationFile) },
             };
         }
 
