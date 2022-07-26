@@ -27,6 +27,16 @@ namespace FlatSharpDelta.Compiler
             }
         }
 
+        public static HashSet<string> GetAllNamespaces(this Schema schema)
+        {
+            HashSet<string> namespaces = new HashSet<string>();
+
+            schema.objects.ToList().ForEach(obj => namespaces.Add(obj.GetNamespace()));
+            schema.enums.ToList().ForEach(_enum => namespaces.Add(_enum.GetNamespace()));
+
+            return namespaces;
+        }
+
 
         // reflection.Object
 
