@@ -8,6 +8,15 @@ namespace FlatSharpDelta.Compiler
 {
     static class PredefinedTypeFactory
     {
+        public static Schema GetPredefinedTypesSchema(string _namespace, string declarationFile)
+        {
+            return new Schema
+            {
+                objects = new List<reflection.Object>(GetPrimitiveListDeltaTypes(_namespace, declarationFile, 0)),
+                enums = new List<reflection.Enum> { GetListOperation(_namespace, declarationFile) },
+            };
+        }
+
         public static reflection.Enum GetListOperation(string _namespace, string declarationFile)
         {
             return new reflection.Enum

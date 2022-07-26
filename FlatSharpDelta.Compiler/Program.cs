@@ -146,85 +146,107 @@ namespace FlatSharpDelta.Compiler
 
         static void RunCompiler(CompilerStartInfo startInfo)
         {
-            string tempDir = Path.Combine(Path.GetTempPath(), $"flatsharpdeltacompiler_temp_{Guid.NewGuid():n}");
-            Directory.CreateDirectory(tempDir);
+            string tempDirPath = Path.Combine(Path.GetTempPath(), $"flatsharpdeltacompiler_temp_{Guid.NewGuid():n}");
+            Directory.CreateDirectory(tempDirPath);
+            DirectoryInfo tempDir = new DirectoryInfo(tempDirPath);
 
             try
             {
                 Parallel.ForEach(startInfo.InputFiles, inputFile =>
                 {
-                    int flatcExitCode = RunFlatc(new string[]
-                    {
-                        "-b",
-                        "--schema",
-                        "--bfbs-comments",
-                        "--bfbs-builtins",
-                        "--bfbs-filenames", inputFile.DirectoryName,
-                        "--no-warnings",
-                        "-o", tempDir,
-                        inputFile.FullName
-                    });
+                    byte[] originalSchemaBfbs = GetBfbs(inputFile, tempDir, out FileInfo bfbsFile);
+                    Schema originalSchema = Schema.Serializer.Parse(originalSchemaBfbs);
 
-                    if(flatcExitCode != 0)
-                    {
-                        throw new FlatSharpDeltaException
-                        (
-                            "FlatSharpDelta compiler was interrupted because flatc returned an error."
-                        );
-                    }
-
-                    string bfbsFilePath = Path.Combine(tempDir, Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs");
-
-                    Schema originalSchema = Schema.Serializer.Parse(File.ReadAllBytes(bfbsFilePath));
-                    Schema deltaSchema = DeltaSchemaFactory.GetDeltaSchema(originalSchema);
-                    
+                    Schema modifiedSchema = ModifiedSchemaFactory.GetModifiedSchema(originalSchema);
                     // FlatSharp only generates code for an object if the declaration_file value equals the name of the
                     // input file where the object is defined.
-                    deltaSchema.ReplaceMatchingDeclarationFiles
+                    modifiedSchema.ReplaceMatchingDeclarationFiles
                     (
                         "//" + inputFile.Name,
                         "//" + Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs"
                     );
 
-                    byte[] deltaSchemaBfbs = new byte[Schema.Serializer.GetMaxSize(deltaSchema)];
-                    Schema.Serializer.Write(deltaSchemaBfbs, deltaSchema);
-                    File.WriteAllBytes(bfbsFilePath, deltaSchemaBfbs);
+                    byte[] modifiedSchemaBfbs = new byte[Schema.Serializer.GetMaxSize(modifiedSchema)];
+                    Schema.Serializer.Write(modifiedSchemaBfbs, modifiedSchema);
+                    File.WriteAllBytes(bfbsFile.FullName, modifiedSchemaBfbs);
 
-                    int baseCompilerExitCode = RunBaseCompiler(startInfo.BaseCompilerFile.FullName, new string[]
-                    {
-                        "-i", bfbsFilePath,
-                        "-o", startInfo.OutputDirectory.FullName,
-                        // We use a "fake" flatc that just copies the bfbs file (because we already have it).
-                        // It's quite a hack, but it works.
-                        "--flatc-path", "./" + GetFakeFlatcPath()
-                    });
-
-                    if(baseCompilerExitCode != 0)
-                    {
-                        throw new FlatSharpDeltaException
-                        (
-                            "FlatSharpDelta compiler was interrupted because the base FlatSharp compiler returned an error."
-                        );
-                    }
-
-                    string schemaCode = CSharpSyntaxTree.ParseText
-                    (
-                        SchemaCodeWriter.WriteCode(originalSchema, inputFile)
-                    )
-                    .GetRoot().NormalizeWhitespace().ToFullString();
-
-                    string schemaCodeFilePath = Path.Combine
-                    (
-                        startInfo.OutputDirectory.FullName,
-                        Path.GetFileName(inputFile.Name) + ".generated.delta.cs"
-                    );
-                    File.WriteAllText(schemaCodeFilePath, schemaCode);
+                    GenerateFlatSharpCode(startInfo.BaseCompilerFile, bfbsFile, startInfo.OutputDirectory);
+                    GenerateFlatSharpDeltaCode(originalSchema, inputFile, startInfo.OutputDirectory);
                 });
             }
             finally
             {
-                Directory.Delete(tempDir, true);
+                Directory.Delete(tempDirPath, true);
             }
+        }
+
+        static byte[] GetBfbs(FileInfo inputFile, DirectoryInfo outputDirectory, out FileInfo bfbsFile)
+        {
+            int flatcExitCode = RunFlatc(new string[]
+            {
+                "-b",
+                "--schema",
+                "--bfbs-comments",
+                "--bfbs-builtins",
+                "--bfbs-filenames", inputFile.DirectoryName,
+                "--no-warnings",
+                "-o", outputDirectory.FullName,
+                inputFile.FullName
+            });
+
+            if(flatcExitCode != 0)
+            {
+                throw new FlatSharpDeltaException
+                (
+                    "FlatSharpDelta compiler was interrupted because flatc returned an error."
+                );
+            }
+
+            string bfbsFilePath = Path.Combine
+            (
+                outputDirectory.FullName,
+                Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs"
+            );
+
+            bfbsFile = new FileInfo(bfbsFilePath);
+
+            byte[] bfbs = File.ReadAllBytes(bfbsFilePath);
+
+            return bfbs;
+        }
+
+        static void GenerateFlatSharpCode(FileInfo baseCompilerFile, FileInfo bfbsFile, DirectoryInfo outputDirectory)
+        {
+            int baseCompilerExitCode = RunBaseCompiler(baseCompilerFile.FullName, new string[]
+            {
+                "-i", bfbsFile.FullName,
+                "-o", outputDirectory.FullName,
+                // We use a "fake" flatc that just copies the bfbs file (because we already have it).
+                // It's quite a hack, but it works.
+                "--flatc-path", "./" + GetFakeFlatcPath()
+            });
+
+            if(baseCompilerExitCode != 0)
+            {
+                throw new FlatSharpDeltaException
+                (
+                    "FlatSharpDelta compiler was interrupted because the base FlatSharp compiler returned an error."
+                );
+            }
+        }
+
+        static void GenerateFlatSharpDeltaCode(Schema originalSchema, FileInfo declarationFile, DirectoryInfo outputDirectory)
+        {
+            string schemaCode = CSharpSyntaxTree.ParseText(SchemaCodeWriter.WriteCode(originalSchema, declarationFile))
+                .GetRoot().NormalizeWhitespace().ToFullString();
+
+            string schemaCodeFilePath = Path.Combine
+            (
+                outputDirectory.FullName,
+                Path.GetFileName(declarationFile.Name) + ".flatsharpdelta.generated.cs"
+            );
+
+            File.WriteAllText(schemaCodeFilePath, schemaCode);
         }
 
         static int RunFlatc(string[] args)

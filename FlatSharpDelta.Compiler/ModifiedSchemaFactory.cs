@@ -8,7 +8,7 @@ using reflection;
 // poop code, please refactor
 namespace FlatSharpDelta.Compiler
 {
-    static class DeltaSchemaFactory
+    static class ModifiedSchemaFactory
     {
         private class DeltaIndexes
         {
@@ -160,7 +160,8 @@ namespace FlatSharpDelta.Compiler
             }
         }
 
-        public static Schema GetDeltaSchema(Schema originalSchema)
+        // Method that returns a schema that contains both the "base" objects (see BaseSchemaFactory) and their corresponding delta objects.
+        public static Schema GetModifiedSchema(Schema originalSchema)
         {
             Schema baseSchema = BaseSchemaFactory.GetBaseSchema(originalSchema);
             DeltaIndexes deltaIndexes = new DeltaIndexes(baseSchema);

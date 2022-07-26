@@ -569,7 +569,7 @@ namespace FlatSharpDelta.Compiler
             });
 
             return $@"
-                public void UpdateInternalReferenceState()
+                public void UpdateReferenceState()
                 {{
                     UpdateInternalReferenceState();
                     {calls}
