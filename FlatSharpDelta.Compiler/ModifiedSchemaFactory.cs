@@ -428,6 +428,7 @@ namespace FlatSharpDelta.Compiler
                     id = 3,
                     offset = 10,
                     attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } },
+                    optional = true,
                 },
             };
 
@@ -440,6 +441,7 @@ namespace FlatSharpDelta.Compiler
                     id = 4,
                     offset = 12,
                     attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } },
+                    optional = true,
                 });
             }
 
@@ -508,10 +510,12 @@ namespace FlatSharpDelta.Compiler
                 new Field
                 {
                     name = "BaseValue",
-                    type = new reflection.Type { base_type = BaseType.Union, index = baseSchema.enums.IndexOf(baseUnion) },
+                    type = new reflection.Type { base_type = baseUnion.is_union ? BaseType.Union : baseUnion.underlying_type.base_type, index = baseSchema.enums.IndexOf(baseUnion) },
                     id = 3,
                     offset = 10,
                     attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } },
+                    optional = baseUnion.is_union,
+                    default_integer = baseUnion.is_union ? 0 : baseUnion.values[0].value
                 },
             };
 
@@ -532,6 +536,7 @@ namespace FlatSharpDelta.Compiler
                     id = 5,
                     offset = 14,
                     attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } },
+                    optional = true,
                 });
 
                 Field deltaValueUType = new Field(listDeltaObj.fields[5]);

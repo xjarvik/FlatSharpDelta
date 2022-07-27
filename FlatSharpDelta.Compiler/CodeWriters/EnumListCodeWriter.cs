@@ -488,7 +488,7 @@ namespace FlatSharpDelta.Compiler
                             delta.Operation = 0;
                             delta.CurrentIndex = 0;
                             delta.NewIndex = 0;
-                            delta.BaseValue = 0;
+                            delta.BaseValue = ({_enum.name}){_enum.values[0].value};
                         }}
 
                         private MutableTListDelta GetValueFromDeltaPool(object identifier){{

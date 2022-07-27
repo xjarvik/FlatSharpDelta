@@ -74,6 +74,11 @@ namespace FlatSharpDelta.Compiler
                     return null;
             }
 
+            if(PropertyTypeIsIntegral(type) && type.index != -1)
+            {
+                propertyType = schema.enums[type.index].name;
+            }
+
             if(optional)
             {
                 propertyType += "?";
@@ -149,6 +154,11 @@ namespace FlatSharpDelta.Compiler
                     return null;
             }
 
+            if(PropertyListTypeIsIntegral(type) && type.index != -1)
+            {
+                propertyListType = schema.enums[type.index].name + "List?";
+            }
+
             return propertyListType;
         }
 
@@ -161,7 +171,7 @@ namespace FlatSharpDelta.Compiler
             || type.base_type == BaseType.UType)
             {
                 reflection.Object obj = new reflection.Object{ name = propertyBaseType };
-                propertyBaseType = obj.GetNamespace() + ".Base" + obj.GetNameWithoutNamespace();
+                propertyBaseType = obj.GetNamespace() + ".SupportingTypes.Base" + obj.GetNameWithoutNamespace();
             }
 
             return propertyBaseType;
@@ -171,14 +181,7 @@ namespace FlatSharpDelta.Compiler
         {
             reflection.Type baseType = new reflection.Type(type);
             baseType.base_type = type.element;
-            string propertyBaseType = GetPropertyBaseType(schema, baseType, optional);
-
-            if(type.element == BaseType.Obj
-            || type.element == BaseType.Union
-            || type.element == BaseType.UType)
-            {
-                propertyBaseType = propertyBaseType.TrimEnd('?');
-            }
+            string propertyBaseType = GetPropertyBaseType(schema, baseType, optional).TrimEnd('?');
 
             return $"IReadOnlyList<{propertyBaseType}>?";
         }
@@ -295,7 +298,7 @@ namespace FlatSharpDelta.Compiler
                 case BaseType.UInt:
                 case BaseType.Long:
                 case BaseType.ULong:
-                    return field.default_integer.ToString();
+                    return $"{(field.type.index != -1 ? $"({schema.enums[field.type.index].name})" : String.Empty)}" + field.default_integer.ToString();
 
                 case BaseType.Float:
                     return field.default_real.ToString() + "f";
@@ -343,6 +346,61 @@ namespace FlatSharpDelta.Compiler
             }
 
             return false;
+        }
+
+        public static bool PropertyTypeIsIntegral(reflection.Type type)
+        {
+            switch(type.base_type)
+            {
+                case BaseType.Byte:
+                case BaseType.UByte:
+                case BaseType.Short:
+                case BaseType.UShort:
+                case BaseType.Int:
+                case BaseType.UInt:
+                case BaseType.Long:
+                case BaseType.ULong:
+                     return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static bool PropertyListTypeIsIntegral(reflection.Type type)
+        {
+            switch(type.element)
+            {
+                case BaseType.Byte:
+                case BaseType.UByte:
+                case BaseType.Short:
+                case BaseType.UShort:
+                case BaseType.Int:
+                case BaseType.UInt:
+                case BaseType.Long:
+                case BaseType.ULong:
+                     return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static int GetDeltaFieldsCount(Schema schema, reflection.Object obj)
+        {
+            int count = 0;
+
+            obj.ForEachFieldExceptUType(field =>
+            {
+                count++;
+
+                if(PropertyTypeIsDerived(schema, field.type))
+                {
+                    count++;
+                }
+            });
+
+            return count;
         }
     }
 }

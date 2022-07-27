@@ -11,21 +11,22 @@ namespace FlatSharpDelta.Compiler
         {
             string name = obj.GetNameWithoutNamespace();
             string _namespace = obj.GetNamespace();
+            bool hasSerializer = obj.HasAttribute("fs_serializer");
 
             string code = $@"
                 namespace {_namespace}
                 {{
                     {GetUsings(obj)}
 
-                    public partial class {name} : Base{name}, IFlatBufferSerializable<{name}>
+                    public partial class {name} : Base{name} {(hasSerializer ? $", IFlatBufferSerializable<{name}>" : String.Empty)}
                     {{
-                        {GetMembers(obj)}
+                        {GetMembers(schema, obj)}
 
                         {GetIndexes(schema, obj)}
 
                         {GetProperties(schema, obj)}
 
-                        {GetInitialize(obj)}
+                        {GetInitialize(schema, obj)}
 
                 #pragma warning disable CS8618
                         {GetDefaultConstructor(obj)}
@@ -45,7 +46,7 @@ namespace FlatSharpDelta.Compiler
 
                         {GetMutableDeltaClass(schema, obj)}
 
-                        {(obj.HasAttribute("fs_serializer") ? GetSerializerClass(obj) : String.Empty)}
+                        {(hasSerializer ? GetSerializerClass(obj) : String.Empty)}
                     }}
                 }}
             ";
@@ -62,19 +63,24 @@ namespace FlatSharpDelta.Compiler
             ";
         }
 
-        private static string GetMembers(reflection.Object obj)
+        private static string GetMembers(Schema schema, reflection.Object obj)
         {
             string name = obj.GetNameWithoutNamespace();
+            bool hasSerializer = obj.HasAttribute("fs_serializer");
 
             return $@"
                 private MutableBase{name} original;
                 private Mutable{name}Delta delta;
                 private List<byte> byteFields;
-                {(obj.fields.Count > 255 ? "private List<ushort> shortFields;" : String.Empty)}
+                {(CodeWriterUtils.GetDeltaFieldsCount(schema, obj) > 255 ? "private List<ushort> shortFields;" : String.Empty)}
+                {(hasSerializer ?
+                $@"
                 private static {name}Serializer _Serializer = new {name}Serializer();
                 public static new ISerializer<{name}> Serializer => _Serializer;
                 ISerializer IFlatBufferSerializable.Serializer => _Serializer;
                 ISerializer<{name}> IFlatBufferSerializable<{name}>.Serializer => _Serializer;
+                " :
+                String.Empty)}
             ";
         }
 
@@ -117,7 +123,7 @@ namespace FlatSharpDelta.Compiler
                 bool isUnion = field.type.base_type == BaseType.Union;
 
                 properties += $@"
-                    {(privateMember ? $"private new {type} _{field.name};" : String.Empty)}
+                    {(privateMember ? $"private {type} _{field.name};" : String.Empty)}
                     public new {type} {field.name}
                     {{
                         get => {(privateMember ? $"_{field.name}" : $"base.{field.name}")};
@@ -136,7 +142,7 @@ namespace FlatSharpDelta.Compiler
             return properties;
         }
 
-        private static string GetInitialize(reflection.Object obj)
+        private static string GetInitialize(Schema schema, reflection.Object obj)
         {
             string name = obj.GetNameWithoutNamespace();
 
@@ -146,7 +152,7 @@ namespace FlatSharpDelta.Compiler
                     original = new MutableBase{name}();
                     delta = new Mutable{name}Delta();
                     byteFields = new List<byte>();
-                    {(obj.fields.Count > 255 ? "shortFields = new List<ushort>();" : String.Empty)}
+                    {(CodeWriterUtils.GetDeltaFieldsCount(schema, obj) > 255 ? "shortFields = new List<ushort>();" : String.Empty)}
                 }}
             ";
         }
@@ -179,6 +185,7 @@ namespace FlatSharpDelta.Compiler
                 else
                 {
                     bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
+                    bool isUnion = field.type.base_type == BaseType.Union;
                     string baseType = !isArray ?
                         CodeWriterUtils.GetPropertyBaseType(schema, field.type, field.optional) :
                         CodeWriterUtils.GetPropertyBaseListType(schema, field.type, field.optional);
@@ -188,7 +195,7 @@ namespace FlatSharpDelta.Compiler
                     
                     fieldCopies += $@"
                         {baseType} b_{field.name} = b.{field.name};
-                        {field.name} = b_{field.name} != null ? new {type}(b_{field.name}) : null;
+                        {field.name} = b_{field.name} != null ? new {type.TrimEnd('?')}(b_{field.name}{(isUnion && field.optional ? ".Value" : String.Empty)}) : null;
                     ";
                 }
             });
@@ -235,14 +242,14 @@ namespace FlatSharpDelta.Compiler
                 public {name}Delta? GetDelta()
                 {{
                     byteFields.Clear();
-                    {(obj.fields.Count > 255 ? "shortFields.Clear();" : String.Empty)}
+                    {(CodeWriterUtils.GetDeltaFieldsCount(schema, obj) > 255 ? "shortFields.Clear();" : String.Empty)}
 
                     {deltaComparisons}
 
                     delta.ByteFields = byteFields.Count > 0 ? byteFields : null;
-                    {(obj.fields.Count > 255 ? "delta.ShortFields = shortFields.Count > 0 ? shortFields : null;" : String.Empty)}
+                    {(CodeWriterUtils.GetDeltaFieldsCount(schema, obj) > 255 ? "delta.ShortFields = shortFields.Count > 0 ? shortFields : null;" : String.Empty)}
 
-                    return byteFields.Count > 0{(obj.fields.Count > 255 ? " || shortFields.Count > 0" : String.Empty)} ? delta : null;
+                    return byteFields.Count > 0{(CodeWriterUtils.GetDeltaFieldsCount(schema, obj) > 255 ? " || shortFields.Count > 0" : String.Empty)} ? delta : null;
                 }}
             ";
         }
@@ -441,6 +448,7 @@ namespace FlatSharpDelta.Compiler
                 }
                 else
                 {
+                    bool isUnion = field.type.base_type == BaseType.Union;
                     string baseType = !isArray ?
                         CodeWriterUtils.GetPropertyBaseType(schema, field.type, field.optional) :
                         CodeWriterUtils.GetPropertyBaseListType(schema, field.type, field.optional);
@@ -452,7 +460,7 @@ namespace FlatSharpDelta.Compiler
                         case {field.name}_Index:
                         {{
                             {baseType} nestedObject = delta.{field.name};
-                            {field.name} = nestedObject != null ? new {type}(nestedObject) : null;
+                            {field.name} = nestedObject != null ? new {type.TrimEnd('?')}(nestedObject{(isUnion && field.optional ? ".Value" : String.Empty)}) : null;
                             break;
                         }}
                     ";
@@ -495,6 +503,7 @@ namespace FlatSharpDelta.Compiler
                         return;
                     }}
 
+                    {(CodeWriterUtils.GetDeltaFieldsCount(schema, obj) > 0 ? $@"
                     IReadOnlyList<byte>? byteFields = delta.ByteFields;
 
                     if(byteFields != null)
@@ -510,8 +519,10 @@ namespace FlatSharpDelta.Compiler
                             }}
                         }}
                     }}
+                    " :
+                    String.Empty)}
 
-                    {(obj.fields.Count > 255 ? $@"
+                    {(CodeWriterUtils.GetDeltaFieldsCount(schema, obj) > 255 ? $@"
                     IReadOnlyList<ushort>? shortFields = delta.ShortFields;
 
                     if(shortFields != null)
@@ -656,7 +667,7 @@ namespace FlatSharpDelta.Compiler
                         }}
                     }}
 
-                    {(obj.fields.Count > 255 ? $@"
+                    {(CodeWriterUtils.GetDeltaFieldsCount(schema, obj) > 255 ? $@"
                     private List<ushort>? _ShortFields {{ get; set; }}
                     public new List<ushort>? ShortFields
                     {{
