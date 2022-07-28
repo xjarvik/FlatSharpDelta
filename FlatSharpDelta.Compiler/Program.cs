@@ -14,9 +14,9 @@ using reflection;
 
 namespace FlatSharpDelta.Compiler
 {
-    class Program
+    public class Program
     {
-        static int Main(string[] args)
+        public static int Main(string[] args)
         {
             int exitCode = -1;
 

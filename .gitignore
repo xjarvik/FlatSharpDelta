@@ -4,6 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 FlatSharpDelta.Compiler/temp
+FlatSharpDelta.Tests/temp
 
 # User-specific files
 *.rsuser
