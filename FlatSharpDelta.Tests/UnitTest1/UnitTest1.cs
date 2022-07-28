@@ -1,31 +1,34 @@
 using System;
 using System.IO;
+using System.Reflection;
 using Xunit;
 
 namespace FlatSharpDelta.Tests
 {
-    public class UnitTest1
+    public class UnitTest1 : GeneratedCodeTest
     {
+        protected override string[] FbsFiles
+        {
+            get => new string[]
+            {
+                "UnitTest1.fbs"
+            };
+        }
+
         [Fact]
         public void Test1()
         {
-            string testName = this.GetType().Name;
-            string currentDirectory = Path.GetDirectoryName(this.GetType().Assembly.Location);
-            FileInfo inputFile = new FileInfo(Path.Combine(currentDirectory, testName + ".fbs"));
-            DirectoryInfo outputDirectory = new DirectoryInfo(Path.Combine(currentDirectory, "temp"));
-            Directory.CreateDirectory(outputDirectory.FullName);
+            Type type = GeneratedAssembly.GetType("FooBar.Foo");
+            object foo = Activator.CreateInstance(type);
+            type.GetProperty("Abc").SetValue(foo, 2);
+            object delta = type.InvokeMember("GetDelta",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                foo,
+                null
+            );
 
-            int exitCode = FlatSharpDelta.Compiler.Program.Main(new string[]
-            {
-                "-i", inputFile.FullName,
-                "-o", outputDirectory.FullName
-            });
-            Assert.Equal(0, exitCode);
-
-            foreach (FileInfo file in outputDirectory.GetFiles())
-            {
-                file.Delete(); 
-            }
+            Assert.NotNull(delta);
         }
     }
 }
