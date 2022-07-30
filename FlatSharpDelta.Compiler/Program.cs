@@ -24,6 +24,11 @@ namespace FlatSharpDelta.Compiler
             {
                 Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed<CompilerOptions>(compilerOptions =>
                 {
+                    if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        ChmodFakeFlatc();
+                    }
+
                     FileInfo baseCompilerFile = compilerOptions.BaseCompiler != null ?
                         GetBaseCompilerFile(compilerOptions.BaseCompiler) :
                         new FileInfo(Path.Combine
@@ -55,6 +60,23 @@ namespace FlatSharpDelta.Compiler
             }
 
             return exitCode;
+        }
+
+        static void ChmodFakeFlatc()
+        {
+            Process process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "chmod"
+                }
+            };
+
+            process.StartInfo.ArgumentList.Add("a+x");
+            process.StartInfo.ArgumentList.Add(GetFakeFlatcPath());
+
+            process.Start();
+            process.WaitForExit();
         }
 
         static FileInfo[] GetInputFiles(string _input)
@@ -357,12 +379,12 @@ namespace FlatSharpDelta.Compiler
             string shell;
             string name;
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 shell = "cmd";
                 name = "fake-flatc.cmd";
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            else if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 shell = "bash";
                 name = "fake-flatc.sh";
