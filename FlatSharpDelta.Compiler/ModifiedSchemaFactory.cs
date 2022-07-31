@@ -152,6 +152,12 @@ namespace FlatSharpDelta.Compiler
                             deltaType.index = DeltaUnionIndexes[baseSchema.enums[type.index]].Item2;
                             break;
                     }
+
+                    if(CodeWriterUtils.PropertyListTypeIsIntegral(type) && type.index != -1)
+                    {
+                        deltaType.index = DeltaUnionIndexes[baseSchema.enums[type.index]].Item2;
+                    }
+
                     deltaType.base_type = BaseType.Vector;
                     deltaType.element = BaseType.Obj;
                 }

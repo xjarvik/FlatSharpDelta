@@ -111,9 +111,39 @@ namespace FlatSharpDelta.Tests
             type.GetProperties().First(property => property.Name == propertyName).SetValue(obj, value.NativeObject);
         }
 
-        public static bool operator==(GeneratedBaseType obj1, GeneratedBaseType obj2) => obj1.obj == obj2.obj;
+        public static bool operator==(GeneratedBaseType obj1, GeneratedBaseType obj2)
+        {
+            bool obj1IsNull = ReferenceEquals(obj1, null);
+            bool obj2IsNull = ReferenceEquals(obj2, null);
 
-        public static bool operator!=(GeneratedBaseType obj1, GeneratedBaseType obj2) => obj1.obj != obj2.obj;
+            if(obj1IsNull && obj2IsNull)
+            {
+                return true;
+            }
+            else if(!obj1IsNull && !obj2IsNull && ReferenceEquals(obj1.obj, obj2.obj))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool operator!=(GeneratedBaseType obj1, GeneratedBaseType obj2)
+        {
+            bool obj1IsNull = ReferenceEquals(obj1, null);
+            bool obj2IsNull = ReferenceEquals(obj2, null);
+
+            if(obj1IsNull && obj2IsNull)
+            {
+                return false;
+            }
+            else if(!obj1IsNull && !obj2IsNull && ReferenceEquals(obj1.obj, obj2.obj))
+            {
+                return false;
+            }
+
+            return true;
+        }
 
         public override bool Equals(object obj)
         {

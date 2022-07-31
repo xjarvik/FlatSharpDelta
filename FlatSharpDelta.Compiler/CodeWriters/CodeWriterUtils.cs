@@ -166,11 +166,12 @@ namespace FlatSharpDelta.Compiler
         {
             string propertyBaseType = GetPropertyType(schema, type, optional);
 
-            if(type.base_type == BaseType.Obj
+            if(!PropertyTypeIsValueStruct(schema, type)
+            && (type.base_type == BaseType.Obj
             || type.base_type == BaseType.Union
-            || type.base_type == BaseType.UType)
+            || type.base_type == BaseType.UType))
             {
-                reflection.Object obj = new reflection.Object{ name = propertyBaseType };
+                reflection.Object obj = new reflection.Object { name = propertyBaseType };
                 propertyBaseType = obj.GetNamespace() + ".SupportingTypes.Base" + obj.GetNameWithoutNamespace();
             }
 
@@ -273,6 +274,11 @@ namespace FlatSharpDelta.Compiler
 
                 default:
                     return null;
+            }
+
+            if(PropertyListTypeIsIntegral(type) && type.index != -1)
+            {
+                listDeltaType = schema.enums[type.index].name + "ListDelta";
             }
 
             return $"IReadOnlyList<{listDeltaType}>?";

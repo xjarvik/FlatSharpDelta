@@ -36,7 +36,7 @@ namespace FlatSharpDelta.Tests
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
                 obj,
-                new object[] { delta.NativeObject }
+                new object[] { delta != null ? delta.NativeObject : null }
             );
         }
 

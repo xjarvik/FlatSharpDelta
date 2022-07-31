@@ -276,7 +276,7 @@ namespace FlatSharpDelta.Compiler
             return $@"
                 if({equalityCheck})
                 {{
-                    delta.{field.name} = {field.name};
+                    delta.{field.name} = {field.name}{(enumVal != null ? "?.Base" : String.Empty)};
                     {(fieldIndex <= 255 ? "byteFields" : "shortFields")}.Add({field.name}_Index);
                 }}
                 else
