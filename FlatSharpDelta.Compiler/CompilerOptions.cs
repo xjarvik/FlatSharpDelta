@@ -13,5 +13,8 @@ namespace FlatSharpDelta.Compiler
 
         [Option('c', "compiler", Required = false, HelpText = "Path to the base FlatSharp compiler.")]
         public string BaseCompiler { get; set; }
+
+        [Option("debug", Default = false, Required = false, Hidden = true)]
+        public bool DebugMode { get; set; }
     }
 }

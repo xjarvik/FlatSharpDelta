@@ -31,7 +31,8 @@ namespace FlatSharpDelta.Tests
             int exitCode = FlatSharpDelta.Compiler.Program.Main(new string[]
             {
                 "-i", inputFiles,
-                "-o", outputDirectory.FullName
+                "-o", outputDirectory.FullName,
+                "--debug"
             });
             Assert.Equal(0, exitCode);
 

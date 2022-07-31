@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using CommandLine;
 using FlatSharp;
 using reflection;
+using ExceptionDispatchInfo = System.Runtime.ExceptionServices.ExceptionDispatchInfo;
 
 namespace FlatSharpDelta.Compiler
 {
@@ -19,15 +20,13 @@ namespace FlatSharpDelta.Compiler
         public static int Main(string[] args)
         {
             int exitCode = -1;
+            bool debugMode = false;
 
             try
             {
-                Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed<CompilerOptions>(compilerOptions =>
+                Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed(compilerOptions =>
                 {
-                    if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    {
-                        ChmodFakeFlatc();
-                    }
+                    debugMode = compilerOptions.DebugMode;
 
                     FileInfo baseCompilerFile = compilerOptions.BaseCompiler != null ?
                         GetBaseCompilerFile(compilerOptions.BaseCompiler) :
@@ -45,38 +44,22 @@ namespace FlatSharpDelta.Compiler
                         BaseCompilerFile = baseCompilerFile
                     };
 
+                    if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        ChmodFakeFlatc();
+                    }
+
                     RunCompiler(compilerStartInfo);
                 });
                 
                 exitCode = 0;
             }
-            catch(FlatSharpDeltaException exception)
-            {
-                Console.WriteLine(exception.Message);
-            }
             catch(Exception exception)
             {
-                Console.WriteLine(exception);
+                HandleException(exception, debugMode);
             }
 
             return exitCode;
-        }
-
-        static void ChmodFakeFlatc()
-        {
-            Process process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "chmod"
-                }
-            };
-
-            process.StartInfo.ArgumentList.Add("a+x");
-            process.StartInfo.ArgumentList.Add(GetFakeFlatcPath());
-
-            process.Start();
-            process.WaitForExit();
         }
 
         static FileInfo[] GetInputFiles(string _input)
@@ -167,6 +150,39 @@ namespace FlatSharpDelta.Compiler
             }
         }
 
+        static void ChmodFakeFlatc()
+        {
+            Process process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "chmod"
+                }
+            };
+
+            process.StartInfo.ArgumentList.Add("a+x");
+            process.StartInfo.ArgumentList.Add(GetFakeFlatcPath());
+
+            process.Start();
+            process.WaitForExit();
+        }
+
+        static void HandleException(Exception exception, bool debugMode = false)
+        {
+            if(debugMode)
+            {
+                throw exception;
+            }
+            else if(exception is FlatSharpDeltaException)
+            {
+                Console.WriteLine(exception.Message);
+            }
+            else
+            {
+                Console.WriteLine(exception);
+            }
+        }
+
         static void RunCompiler(CompilerStartInfo startInfo)
         {
             string tempDirPath = Path.Combine(Path.GetTempPath(), $"flatsharpdeltacompiler_temp_{Guid.NewGuid():n}");
@@ -229,6 +245,10 @@ namespace FlatSharpDelta.Compiler
                     File.WriteAllText(codeFilePath, primitiveListTypesCode);
                 });
             }
+            catch(AggregateException exception)
+            {
+                ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
+            }
             finally
             {
                 Directory.Delete(tempDirPath, true);
@@ -247,13 +267,15 @@ namespace FlatSharpDelta.Compiler
                 "--no-warnings",
                 "-o", outputDirectory.FullName,
                 inputFile.FullName
-            });
+            },
+            out string consoleOutput);
 
             if(exitCode != 0)
             {
                 throw new FlatSharpDeltaException
                 (
-                    "FlatSharpDelta compiler was interrupted because flatc returned an error."
+                    "FlatSharpDelta compiler was interrupted because flatc returned an error. Output displayed below.\n\n" +
+                    consoleOutput
                 );
             }
 
@@ -276,16 +298,18 @@ namespace FlatSharpDelta.Compiler
             {
                 "-i", bfbsFile.FullName,
                 "-o", outputDirectory.FullName,
-                // We use a "fake" flatc that just copies the bfbs file (because we already have it).
+                // We pass in "fake-flatc", which is just a shell script that copies the bfbs file (because we already have it).
                 // It's quite a hack, but it works.
                 "--flatc-path", "./" + GetFakeFlatcPath()
-            });
+            },
+            out string consoleOutput);
 
             if(exitCode != 0)
             {
                 throw new FlatSharpDeltaException
                 (
-                    "FlatSharpDelta compiler was interrupted because the base FlatSharp compiler returned an error."
+                    "FlatSharpDelta compiler was interrupted because the base FlatSharp compiler returned an error. Output displayed below.\n\n" +
+                    consoleOutput
                 );
             }
         }
@@ -304,7 +328,7 @@ namespace FlatSharpDelta.Compiler
             File.WriteAllText(codeFilePath, code);
         }
 
-        static int RunFlatc(string[] args)
+        static int RunFlatc(string[] args, out string consoleOutput)
         {
             string os;
             string name;
@@ -337,7 +361,11 @@ namespace FlatSharpDelta.Compiler
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = flatcPath
+                    FileName = flatcPath,
+                    CreateNoWindow = true,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false
                 }
             };
 
@@ -346,19 +374,30 @@ namespace FlatSharpDelta.Compiler
                 process.StartInfo.ArgumentList.Add(arg);
             }
 
+            var tempOutput = new List<string>();
+            process.OutputDataReceived += (_, args) => { tempOutput.Add(args.Data); };
+            process.ErrorDataReceived += (_, args) => { tempOutput.Add(args.Data); };
+
             process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
             process.WaitForExit();
+            consoleOutput = String.Join("\n", tempOutput);
 
             return process.ExitCode;
         }
 
-        static int RunBaseCompiler(string path, string[] args)
+        static int RunBaseCompiler(string path, string[] args, out string consoleOutput)
         {
             Process process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "dotnet"
+                    FileName = "dotnet",
+                    CreateNoWindow = true,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false
                 }
             };
 
@@ -368,8 +407,15 @@ namespace FlatSharpDelta.Compiler
                 process.StartInfo.ArgumentList.Add(arg);
             }
 
+            var tempOutput = new List<string>();
+            process.OutputDataReceived += (_, args) => { tempOutput.Add(args.Data); };
+            process.ErrorDataReceived += (_, args) => { tempOutput.Add(args.Data); };
+
             process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
             process.WaitForExit();
+            consoleOutput = String.Join("\n", tempOutput);
 
             return process.ExitCode;
         }

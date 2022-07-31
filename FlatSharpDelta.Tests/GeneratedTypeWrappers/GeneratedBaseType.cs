@@ -59,6 +59,22 @@ namespace FlatSharpDelta.Tests
             }
         }
 
+        public object GetIndexerProperty(object index)
+        {
+            return type.GetProperties().First(property => property.Name == "Item").GetValue(obj, new object[] { index });
+        }
+
+        public T GetIndexerProperty<T>(object index) where T : GeneratedBaseType, new()
+        {
+            T gbt = new T();
+            gbt.obj = GetIndexerProperty(index);
+            gbt.type = gbt.obj.GetType();
+            gbt.assembly = gbt.type.Assembly;
+            gbt.name = gbt.type.Name;
+            
+            return gbt;
+        }
+
         public object GetProperty(string propertyName)
         {
             return type.GetProperties().First(property => property.Name == propertyName).GetValue(obj);
@@ -73,6 +89,16 @@ namespace FlatSharpDelta.Tests
             gbt.name = gbt.type.Name;
             
             return gbt;
+        }
+
+        public void SetIndexerProperty(object index, object value)
+        {
+            type.GetProperties().First(property => property.Name == "Item").SetValue(obj, value, new object[] { index });
+        }
+
+        public void SetIndexerProperty(object index, GeneratedBaseType value)
+        {
+            type.GetProperties().First(property => property.Name == "Item").SetValue(obj, value.NativeObject, new object[] { index });
         }
 
         public void SetProperty(string propertyName, object value)

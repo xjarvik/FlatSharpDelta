@@ -1,0 +1,13 @@
+namespace FooBar;
+
+attribute "fs_serializer";
+
+table Foo {
+    Abc:int;
+}
+
+table Bar (fs_serializer) {
+    MyFooList:[Foo];
+}
+
+root_type Bar;
