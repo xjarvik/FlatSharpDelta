@@ -171,8 +171,8 @@ namespace FlatSharpDelta.Compiler
             || type.base_type == BaseType.Union
             || type.base_type == BaseType.UType))
             {
-                reflection.Object obj = new reflection.Object { name = propertyBaseType };
-                propertyBaseType = obj.GetNamespace() + ".SupportingTypes.Base" + obj.GetNameWithoutNamespace();
+                reflection.Object tempObj = new reflection.Object { name = propertyBaseType };
+                propertyBaseType = tempObj.GetNamespace() + ".SupportingTypes.Base" + tempObj.GetNameWithoutNamespace();
             }
 
             return propertyBaseType;
@@ -407,6 +407,18 @@ namespace FlatSharpDelta.Compiler
             });
 
             return count;
+        }
+
+        public static string GetExtensionsType(Schema schema, reflection.Type type)
+        {
+            reflection.Object tempObj = new reflection.Object { name = CodeWriterUtils.GetPropertyType(schema, type) };
+
+            if(tempObj.name.LastIndexOf(".") < 0)
+            {
+                return null;
+            }
+           
+            return tempObj.GetNamespace() + ".SupportingTypes." + tempObj.GetNameWithoutNamespace() + "Extensions";
         }
     }
 }

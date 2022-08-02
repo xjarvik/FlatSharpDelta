@@ -91,6 +91,22 @@ namespace FlatSharpDelta.Tests
             return gbt;
         }
 
+        public object GetField(string fieldName)
+        {
+            return type.GetFields().First(field => field.Name == fieldName).GetValue(obj);
+        }
+
+        public T GetField<T>(string fieldName) where T : GeneratedBaseType, new()
+        {
+            T gbt = new T();
+            gbt.obj = GetField(fieldName);
+            gbt.type = gbt.obj.GetType();
+            gbt.assembly = gbt.type.Assembly;
+            gbt.name = gbt.type.Name;
+            
+            return gbt;
+        }
+
         public void SetIndexerProperty(object index, object value)
         {
             type.GetProperties().First(property => property.Name == "Item").SetValue(obj, value, new object[] { index });
@@ -109,6 +125,16 @@ namespace FlatSharpDelta.Tests
         public void SetProperty(string propertyName, GeneratedBaseType value)
         {
             type.GetProperties().First(property => property.Name == propertyName).SetValue(obj, value.NativeObject);
+        }
+
+        public void SetField(string fieldName, object value)
+        {
+            type.GetFields().First(field => field.Name == fieldName).SetValue(obj, value);
+        }
+
+        public void SetField(string fieldName, GeneratedBaseType value)
+        {
+            type.GetFields().First(field => field.Name == fieldName).SetValue(obj, value.NativeObject);
         }
 
         public static bool operator==(GeneratedBaseType obj1, GeneratedBaseType obj2)

@@ -258,6 +258,7 @@ namespace FlatSharpDelta.Compiler
         {
             reflection.Type type = enumVal != null ? enumVal.union_type : field.type;
             bool isValueStruct = CodeWriterUtils.PropertyTypeIsValueStruct(schema, type);
+            string extensionsType = CodeWriterUtils.GetExtensionsType(schema, type);
             string equalityCheck = String.Empty;
 
             if(!isValueStruct)
@@ -266,11 +267,11 @@ namespace FlatSharpDelta.Compiler
             }
             else if(enumVal != null)
             {
-                equalityCheck = $"!{field.name}.Value.{enumVal.name}.IsEqualTo(original.{field.name}.Value.{enumVal.name})";
+                equalityCheck = $"!{extensionsType}.IsEqualTo({field.name}.Value.{enumVal.name}, original.{field.name}.Value.{enumVal.name})";
             }
             else
             {
-                equalityCheck = $"!{field.name}.IsEqualTo(original.{field.name})";
+                equalityCheck = $"!{extensionsType}.IsEqualTo({field.name}, original.{field.name})";
             }
 
             return $@"
