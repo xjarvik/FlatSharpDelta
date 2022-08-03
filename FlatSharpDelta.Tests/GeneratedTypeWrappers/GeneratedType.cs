@@ -49,5 +49,15 @@ namespace FlatSharpDelta.Tests
                 null
             );
         }
+
+        public static object Enum(Assembly assembly, string name, string value)
+        {
+            return System.Enum.Parse(assembly.GetType(name), value);
+        }
+
+        public static object Enum(Assembly assembly, string name, object value)
+        {
+            return System.Enum.ToObject(assembly.GetType(name), value);
+        }
     }
 }

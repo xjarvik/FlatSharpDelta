@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace FlatSharpDelta.Tests
 {
-    public class GeneratedBaseType
+    public abstract class GeneratedBaseType
     {
         protected Assembly assembly;
         protected string name;

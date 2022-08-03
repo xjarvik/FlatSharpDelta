@@ -42,6 +42,16 @@ namespace FlatSharpDelta.Tests
             );
         }
 
+        public void Add(object item)
+        {
+            type.InvokeMember("Add",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                obj,
+                new object[] { item }
+            );
+        }
+
         public void Clear()
         {
             type.InvokeMember("Clear",
@@ -62,12 +72,31 @@ namespace FlatSharpDelta.Tests
             );
         }
 
+        public bool Contains(object item)
+        {
+            return (bool)type.InvokeMember("Contains",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                obj,
+                new object[] { item }
+            );
+        }
+
         public void CopyTo(GeneratedType[] array, int arrayIndex){
             type.InvokeMember("CopyTo",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
                 obj,
                 new object[] { array.Select(t => t.NativeObject).ToArray(), arrayIndex }
+            );
+        }
+
+        public void CopyTo(object[] array, int arrayIndex){
+            type.InvokeMember("CopyTo",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                obj,
+                new object[] { array, arrayIndex }
             );
         }
 
@@ -90,12 +119,30 @@ namespace FlatSharpDelta.Tests
             );
         }
 
+        public int IndexOf(object item){
+            return (int)type.InvokeMember("IndexOf",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                obj,
+                new object[] { item }
+            );
+        }
+
         public void Insert(int index, GeneratedType item){
             type.InvokeMember("Insert",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
                 obj,
                 new object[] { index, item.NativeObject }
+            );
+        }
+
+        public void Insert(int index, object item){
+            type.InvokeMember("Insert",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                obj,
+                new object[] { index, item }
             );
         }
 
@@ -114,6 +161,15 @@ namespace FlatSharpDelta.Tests
                 null,
                 obj,
                 new object[] { item.NativeObject }
+            );
+        }
+
+        public bool Remove(object item){
+            return (bool)type.InvokeMember("Remove",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                obj,
+                new object[] { item }
             );
         }
 
