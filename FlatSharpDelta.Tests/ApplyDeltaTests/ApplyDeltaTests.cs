@@ -6,14 +6,29 @@ using Xunit;
 
 namespace FlatSharpDelta.Tests
 {
-    public class ApplyDeltaTests : GeneratedCodeTests
+    public class ApplyDeltaTests : IClassFixture<AssemblyFixture<ApplyDeltaTests.Configuration>>
     {
-        protected override string[] FbsFiles
+        public class Configuration : ITestConfiguration
         {
-            get => new string[]
+            public Type TestType
             {
-                "ApplyDeltaTests.fbs"
-            };
+                get => typeof(ApplyDeltaTests);
+            }
+
+            public string[] FbsFiles
+            {
+                get => new string[]
+                {
+                    "ApplyDeltaTests.fbs"
+                };
+            }
+        }
+
+        private Assembly GeneratedAssembly { get; set; }
+
+        public ApplyDeltaTests(AssemblyFixture<ApplyDeltaTests.Configuration> fixture)
+        {
+            GeneratedAssembly = fixture.GeneratedAssembly;
         }
 
         [Fact]

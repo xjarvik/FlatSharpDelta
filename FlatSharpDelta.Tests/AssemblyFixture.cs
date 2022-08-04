@@ -10,20 +10,18 @@ using Xunit;
 
 namespace FlatSharpDelta.Tests
 {
-    public abstract class GeneratedCodeTests : IDisposable
+    public class AssemblyFixture<T> : IDisposable where T : ITestConfiguration, new()
     {
-        protected abstract string[] FbsFiles { get; }
         private DirectoryInfo outputDirectory;
-
         private Assembly generatedAssembly;
-        protected Assembly GeneratedAssembly { get => generatedAssembly; }
+        public Assembly GeneratedAssembly { get => generatedAssembly; }
 
-        protected GeneratedCodeTests()
+        public AssemblyFixture()
         {
-            Type type = this.GetType();
-            string testClassName = type.Name;
-            string currentDirectory = Path.GetDirectoryName(type.Assembly.Location);
-            string inputFiles = String.Join(";", FbsFiles.Select(fbsFile => Path.Combine(currentDirectory, fbsFile)));
+            T configuration = new T();
+            string testClassName = configuration.TestType.Name;
+            string currentDirectory = Path.GetDirectoryName(configuration.TestType.Assembly.Location);
+            string inputFiles = String.Join(";", configuration.FbsFiles.Select(fbsFile => Path.Combine(currentDirectory, fbsFile)));
             outputDirectory = new DirectoryInfo(Path.Combine(currentDirectory, "temp", testClassName));
             Directory.CreateDirectory(outputDirectory.FullName);
             ClearOutputDirectory();

@@ -1,18 +1,34 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Collections.Generic;
 using Xunit;
 
 namespace FlatSharpDelta.Tests
 {
-    public class GetDeltaNullTests : GeneratedCodeTests
+    public class GetDeltaNullTests : IClassFixture<AssemblyFixture<GetDeltaNullTests.Configuration>>
     {
-        protected override string[] FbsFiles
+        public class Configuration : ITestConfiguration
         {
-            get => new string[]
+            public Type TestType
             {
-                "GetDeltaNullTests.fbs"
-            };
+                get => typeof(GetDeltaNullTests);
+            }
+
+            public string[] FbsFiles
+            {
+                get => new string[]
+                {
+                    "GetDeltaNullTests.fbs"
+                };
+            }
+        }
+
+        private Assembly GeneratedAssembly { get; set; }
+
+        public GetDeltaNullTests(AssemblyFixture<GetDeltaNullTests.Configuration> fixture)
+        {
+            GeneratedAssembly = fixture.GeneratedAssembly;
         }
 
         [Fact]
