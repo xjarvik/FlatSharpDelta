@@ -32,6 +32,10 @@ namespace FlatSharpDelta.Tests
         {
         }
 
+        public GeneratedListType(Assembly assembly, string name, GeneratedBaseType copy) : base(assembly, name, copy.NativeObject)
+        {
+        }
+
         public void Add(GeneratedType item)
         {
             type.InvokeMember("Add",

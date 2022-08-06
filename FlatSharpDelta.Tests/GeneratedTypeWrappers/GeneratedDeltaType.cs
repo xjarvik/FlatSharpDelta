@@ -19,6 +19,10 @@ namespace FlatSharpDelta.Tests
         {
         }
 
+        public GeneratedDeltaType(Assembly assembly, string name, GeneratedBaseType copy) : base(assembly, name, copy.NativeObject)
+        {
+        }
+
         public IReadOnlyList<GeneratedListDeltaType> GetListDeltaProperty(string propertyName)
         {
             return ((IReadOnlyList<object>)GetProperty(propertyName)).Select(d => new GeneratedListDeltaType(d)).ToList();

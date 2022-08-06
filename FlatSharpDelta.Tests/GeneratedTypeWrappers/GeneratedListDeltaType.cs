@@ -18,5 +18,9 @@ namespace FlatSharpDelta.Tests
         public GeneratedListDeltaType(Assembly assembly, string name, object copy = null) : base(assembly, name, copy)
         {
         }
+
+        public GeneratedListDeltaType(Assembly assembly, string name, GeneratedBaseType copy) : base(assembly, name, copy.NativeObject)
+        {
+        }
     }
 }

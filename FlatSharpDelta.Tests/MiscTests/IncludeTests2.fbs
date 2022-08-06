@@ -1,0 +1,22 @@
+include "IncludeTests1.fbs";
+include "IncludeTests3.fbs";
+namespace FooBar2;
+
+attribute "fs_serializer";
+attribute "fs_valueStruct";
+
+struct Foo (fs_valueStruct) {
+    Abc:int;
+}
+
+table Bar (fs_serializer) {
+    Prop1:int = 100;
+    Prop2:string;
+    Prop3:Foo;
+    Prop4:[FooBar1.Foo];
+    Prop5:FooBar1.Bar;
+    Prop6:[FooBar3.Bar];
+    Prop7:FooBar3.Foo;
+}
+
+root_type Bar;

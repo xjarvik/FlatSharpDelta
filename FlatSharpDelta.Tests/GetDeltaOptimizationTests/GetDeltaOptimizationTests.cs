@@ -127,5 +127,29 @@ namespace FlatSharpDelta.Tests
             Assert.NotNull(delta);
             Assert.Single(delta.GetProperty<GeneratedListType>("MyFooListDelta"));
         }
+
+        [Fact]
+        public void GetDelta_MyValueStructIsEqualToReferenceState_DoesNotContainMyValueStruct()
+        {
+            // Arrange
+            GeneratedType bar = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            GeneratedType valueStruct = new GeneratedType(GeneratedAssembly, "FooBar.ValueStruct");
+            valueStruct.SetField("Prop1", 1);
+            valueStruct.SetField("Prop2", 2);
+            valueStruct.SetField("Prop3", true);
+            bar.SetProperty("MyValueStruct", valueStruct);
+            bar.UpdateReferenceState();
+            GeneratedType newValueStruct = new GeneratedType(GeneratedAssembly, "FooBar.ValueStruct");
+            newValueStruct.SetField("Prop1", 1);
+            newValueStruct.SetField("Prop2", 2);
+            newValueStruct.SetField("Prop3", true);
+            bar.SetProperty("MyValueStruct", newValueStruct);
+
+            // Act
+            GeneratedDeltaType delta = bar.GetDelta();
+
+            // Assert
+            Assert.Null(delta);
+        }
     }
 }

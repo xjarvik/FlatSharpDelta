@@ -18,6 +18,10 @@ namespace FlatSharpDelta.Tests
         {
         }
 
+        public GeneratedType(Assembly assembly, string name, GeneratedBaseType copy) : base(assembly, name, copy.NativeObject)
+        {
+        }
+
         public GeneratedDeltaType GetDelta()
         {
             object delta = type.InvokeMember("GetDelta",

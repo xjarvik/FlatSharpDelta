@@ -42,21 +42,8 @@ namespace FlatSharpDelta.Tests
             }
         }
 
-        public GeneratedBaseType(Assembly assembly, string name, GeneratedBaseType copy = null)
+        public GeneratedBaseType(Assembly assembly, string name, GeneratedBaseType copy) : this(assembly, name, copy.NativeObject)
         {
-            this.assembly = assembly;
-            this.name = name;
-
-            type = assembly.GetType(name);
-
-            if(copy == null)
-            {
-                obj = Activator.CreateInstance(type);
-            }
-            else
-            {
-                obj = Activator.CreateInstance(type, copy.NativeObject);
-            }
         }
 
         public object GetIndexerProperty(object index)

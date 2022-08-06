@@ -98,6 +98,24 @@ namespace FlatSharpDelta.Tests
         }
 
         [Fact]
+        public void ApplyDelta_DeltaContainsTableDelta_SetsValuesCorrectly()
+        {
+            // Arrange
+            GeneratedType bar1 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            bar1.SetProperty("Prop3", new GeneratedType(GeneratedAssembly, "FooBar.Foo1"));
+            GeneratedType bar2 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            bar2.ApplyDelta(bar1.GetDelta());
+            bar1.UpdateReferenceState();
+            bar1.GetProperty<GeneratedType>("Prop3").SetProperty("Abc1", 5);
+
+            // Act
+            bar2.ApplyDelta(bar1.GetDelta());
+
+            // Assert
+            Assert.Equal(5, bar2.GetProperty<GeneratedType>("Prop3").GetProperty("Abc1"));
+        }
+
+        [Fact]
         public void ApplyDelta_DeltaContainsValueStructs_SetsValuesCorrectly()
         {
             // Arrange
@@ -161,6 +179,84 @@ namespace FlatSharpDelta.Tests
             Assert.Equal(GeneratedType.Enum(GeneratedAssembly, "FooBar.Foo4", 2), bar2.GetProperty("Prop9"));
             Assert.Single(bar2.GetProperty<GeneratedListType>("Prop10"));
             Assert.Equal(GeneratedType.Enum(GeneratedAssembly, "FooBar.Foo4", 3), bar2.GetProperty<GeneratedListType>("Prop10").GetIndexerProperty(0));
+        }
+
+        [Fact]
+        public void ApplyDelta_DeltaContainsEnumListDeltaWithReplacedListOperation_SetsListValueCorrectly()
+        {
+            // Arrange
+            GeneratedType bar1 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            GeneratedListType foo4List = new GeneratedListType(GeneratedAssembly, "FooBar.Foo4List");
+            foo4List.Add(GeneratedType.Enum(GeneratedAssembly, "FooBar.Foo4", "Val1"));
+            bar1.SetProperty("Prop10", foo4List);
+            GeneratedType bar2 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            bar2.ApplyDelta(bar1.GetDelta());
+            bar1.UpdateReferenceState();
+            foo4List.SetIndexerProperty(0, GeneratedType.Enum(GeneratedAssembly, "FooBar.Foo4", "Val3"));
+
+            // Act
+            bar2.ApplyDelta(bar1.GetDelta());
+
+            // Assert
+            Assert.Single(bar2.GetProperty<GeneratedListType>("Prop10"));
+            Assert.Equal(GeneratedType.Enum(GeneratedAssembly, "FooBar.Foo4", "Val3"), bar2.GetProperty<GeneratedListType>("Prop10").GetIndexerProperty(0));
+        }
+
+        [Fact]
+        public void ApplyDelta_DeltaContainsUnions_SetsValuesCorrectly()
+        {
+            // Arrange
+            GeneratedType bar1 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            GeneratedType foo1 = new GeneratedType(GeneratedAssembly, "FooBar.Foo1");
+            foo1.SetProperty("Abc1", 1);
+            GeneratedType prop11 = new GeneratedType(GeneratedAssembly, "FooBar.Foo5", foo1);
+            bar1.SetProperty("Prop11", prop11);
+            GeneratedListType prop12 = new GeneratedListType(GeneratedAssembly, "FooBar.Foo5List");
+            bar1.SetProperty("Prop12", prop12);
+            GeneratedType foo2 = new GeneratedType(GeneratedAssembly, "FooBar.Foo2");
+            foo2.SetProperty("Abc2", 2);
+            prop12.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo5", foo2));
+
+            GeneratedType bar2 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+
+            // Act
+            bar2.ApplyDelta(bar1.GetDelta());
+
+            // Assert
+            Assert.NotNull(bar2.GetProperty<GeneratedType>("Prop11"));
+            Assert.Equal(1, bar2.GetProperty<GeneratedType>("Prop11").GetProperty<GeneratedType>("MyFoo1").GetProperty("Abc1"));
+            Assert.Single(bar2.GetProperty<GeneratedListType>("Prop12"));
+            Assert.Equal(2, bar2.GetProperty<GeneratedListType>("Prop12").GetIndexerProperty<GeneratedType>(0).GetProperty<GeneratedType>("MyFoo2").GetProperty("Abc2"));
+        }
+
+        [Fact]
+        public void ApplyDelta_DeltaContainsUnionListDeltaWithReplacedAndModifiedListOperations_SetsValuesCorrectly()
+        {
+            // Arrange
+            GeneratedType bar1 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            GeneratedListType prop12 = new GeneratedListType(GeneratedAssembly, "FooBar.Foo5List");
+            bar1.SetProperty("Prop12", prop12);
+            GeneratedType foo2 = new GeneratedType(GeneratedAssembly, "FooBar.Foo2");
+            foo2.SetProperty("Abc2", 2);
+            prop12.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo5", foo2));
+            prop12.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo5", new GeneratedType(GeneratedAssembly, "FooBar.Foo3")));
+            GeneratedType foo3 = new GeneratedType(GeneratedAssembly, "FooBar.Foo3");
+            foo3.SetField("Abc3", 4);
+            prop12.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo5", foo3));
+            GeneratedType bar2 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            bar2.ApplyDelta(bar1.GetDelta());
+            bar1.UpdateReferenceState();
+            prop12.SetIndexerProperty(2, new GeneratedType(GeneratedAssembly, "FooBar.Foo5", new GeneratedType(GeneratedAssembly, "FooBar.Foo3")));
+            foo2.SetProperty("Abc2", 5);
+
+            // Act
+            bar2.ApplyDelta(bar1.GetDelta());
+
+            // Assert
+            Assert.Equal(3, bar2.GetProperty<GeneratedListType>("Prop12").Count);
+            Assert.Equal(5, bar2.GetProperty<GeneratedListType>("Prop12").GetIndexerProperty<GeneratedType>(0).GetProperty<GeneratedType>("MyFoo2").GetProperty("Abc2"));
+            Assert.Equal(0, bar2.GetProperty<GeneratedListType>("Prop12").GetIndexerProperty<GeneratedType>(1).GetProperty<GeneratedType>("MyFoo3").GetField("Abc3"));
+            Assert.Equal(0, bar2.GetProperty<GeneratedListType>("Prop12").GetIndexerProperty<GeneratedType>(2).GetProperty<GeneratedType>("MyFoo3").GetField("Abc3"));
         }
     }
 }

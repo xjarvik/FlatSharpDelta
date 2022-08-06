@@ -1,13 +1,21 @@
 namespace FooBar;
 
 attribute "fs_serializer";
+attribute "fs_valueStruct";
 
 table Foo {
     Abc:int;
 }
 
+struct ValueStruct (fs_valueStruct) {
+    Prop1:int;
+    Prop2:long;
+    Prop3:bool;
+}
+
 table Bar (fs_serializer) {
     MyFooList:[Foo];
+    MyValueStruct:ValueStruct;
 }
 
 root_type Bar;
