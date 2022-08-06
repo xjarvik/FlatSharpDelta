@@ -1,0 +1,45 @@
+namespace FooBar;
+
+attribute "fs_serializer";
+attribute "fs_valueStruct";
+
+table Foo1 {
+    Abc1:int;
+}
+
+struct Foo2 {
+    Abc2:int;
+}
+
+struct Foo3 (fs_valueStruct) {
+    Abc3:int;
+}
+
+enum Foo4 : ubyte {
+    Val1 = 1,
+    Val2 = 2,
+    Val3 = 3
+}
+
+union Foo5 {
+    MyFoo1:Foo1,
+    MyFoo2:Foo2,
+    MyFoo3:Foo3
+}
+
+table Bar (fs_serializer) {
+    Prop1:int = 100;
+    Prop2:string;
+    Prop3:Foo1;
+    Prop4:[Foo1];
+    Prop5:Foo2;
+    Prop6:[Foo2];
+    Prop7:Foo3;
+    Prop8:[Foo3];
+    Prop9:Foo4 = Val1;
+    Prop10:[Foo4];
+    Prop11:Foo5;
+    Prop12:[Foo5];
+}
+
+root_type Bar;

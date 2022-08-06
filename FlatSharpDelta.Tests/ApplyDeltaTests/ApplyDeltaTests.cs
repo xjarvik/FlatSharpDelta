@@ -230,6 +230,27 @@ namespace FlatSharpDelta.Tests
         }
 
         [Fact]
+        public void ApplyDelta_DeltaContainsUnionDelta_SetsValuesCorrectly()
+        {
+            // Arrange
+            GeneratedType bar1 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            GeneratedType foo1 = new GeneratedType(GeneratedAssembly, "FooBar.Foo1");
+            foo1.SetProperty("Abc1", 1);
+            GeneratedType prop11 = new GeneratedType(GeneratedAssembly, "FooBar.Foo5", foo1);
+            bar1.SetProperty("Prop11", prop11);
+            GeneratedType bar2 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            bar2.ApplyDelta(bar1.GetDelta());
+            bar1.UpdateReferenceState();
+            foo1.SetProperty("Abc1", 2);
+
+            // Act
+            bar2.ApplyDelta(bar1.GetDelta());
+
+            // Assert
+            Assert.Equal(2, bar2.GetProperty<GeneratedType>("Prop11").GetProperty<GeneratedType>("MyFoo1").GetProperty("Abc1"));
+        }
+
+        [Fact]
         public void ApplyDelta_DeltaContainsUnionListDeltaWithReplacedAndModifiedListOperations_SetsValuesCorrectly()
         {
             // Arrange
