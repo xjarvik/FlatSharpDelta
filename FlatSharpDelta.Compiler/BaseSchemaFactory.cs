@@ -23,9 +23,12 @@ namespace FlatSharpDelta.Compiler
 
                     foreach(Field field in obj.fields)
                     {
-                        field.SetAttribute("fs_setter", "Protected");
+                        if(field.type.base_type != BaseType.Array)
+                        {
+                            field.SetAttribute("fs_setter", "Protected");
+                        }
 
-                        if(field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array)
+                        if(field.type.base_type == BaseType.Vector)
                         {
                             field.SetAttribute("fs_vector", "IReadOnlyList");
                         }

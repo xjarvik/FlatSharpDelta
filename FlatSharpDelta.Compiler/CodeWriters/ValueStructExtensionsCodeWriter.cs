@@ -68,6 +68,22 @@ namespace FlatSharpDelta.Compiler
                 {
                     comparisons.Add($"self.{field.name}.IsEqualTo(other.{field.name})");
                 }
+                else if(field.type.base_type == BaseType.Array)
+                {
+                    bool isValueStructArray = CodeWriterUtils.PropertyListTypeIsValueStruct(schema, field.type);
+
+                    for(int i = 0; i < field.type.fixed_length; i++)
+                    {
+                        if(!isValueStructArray)
+                        {
+                            comparisons.Add($"self.{field.name}({i}) == other.{field.name}({i})");
+                        }
+                        else
+                        {
+                            comparisons.Add($"self.{field.name}({i}).IsEqualTo(other.{field.name}({i}))");
+                        }
+                    }
+                }
                 else
                 {
                     comparisons.Add($"self.{field.name} == other.{field.name}");

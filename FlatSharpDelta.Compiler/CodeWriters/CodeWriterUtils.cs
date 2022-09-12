@@ -9,9 +9,14 @@ namespace FlatSharpDelta.Compiler
     {
         public static string GetPropertyType(Schema schema, reflection.Type type, bool optional = false)
         {
+            return GetPropertyType(schema, type, false, optional);
+        }
+
+        private static string GetPropertyType(Schema schema, reflection.Type type, bool isArray, bool optional = false)
+        {
             string propertyType;
 
-            switch(type.base_type)
+            switch(!isArray ? type.base_type : type.element)
             {
                 case BaseType.Bool:
                     propertyType = "bool";
@@ -74,7 +79,7 @@ namespace FlatSharpDelta.Compiler
                     return null;
             }
 
-            if(PropertyTypeIsIntegral(type) && type.index != -1)
+            if(PropertyTypeIsBuiltInScalar(type) && type.index != -1)
             {
                 propertyType = schema.enums[type.index].name;
             }
@@ -154,7 +159,7 @@ namespace FlatSharpDelta.Compiler
                     return null;
             }
 
-            if(PropertyListTypeIsIntegral(type) && type.index != -1)
+            if(PropertyListTypeIsBuiltInScalar(type) && type.index != -1)
             {
                 propertyListType = schema.enums[type.index].name + "List?";
             }
@@ -187,11 +192,24 @@ namespace FlatSharpDelta.Compiler
             return $"IReadOnlyList<{propertyBaseType}>?";
         }
 
-        public static string GetPropertyDeltaType(Schema schema, reflection.Type type)
+        public static string GetPropertyBaseArrayType(Schema schema, Field field)
+        {
+            bool isValueStruct = PropertyListTypeIsValueStruct(schema, field.type);
+
+            if(!PropertyListTypeIsBuiltInScalar(field.type) && !isValueStruct)
+            {
+                reflection.Object tempObj = new reflection.Object { name = schema.objects[field.type.index].name };
+                return tempObj.GetNamespace() + ".SupportingTypes.Base" + tempObj.GetNameWithoutNamespace() + "?";
+            }
+
+            return GetPropertyType(schema, field.type, true, isValueStruct);
+        }
+
+        public static string GetPropertyDeltaType(Schema schema, reflection.Type type, bool isArray = false)
         {
             string propertyDeltaType;
 
-            switch(type.base_type)
+            switch(!isArray ? type.base_type : type.element)
             {
                 case BaseType.Obj:
                     propertyDeltaType = schema.objects[type.index].name + "Delta?";
@@ -276,7 +294,7 @@ namespace FlatSharpDelta.Compiler
                     return null;
             }
 
-            if(PropertyListTypeIsIntegral(type) && type.index != -1)
+            if(PropertyListTypeIsBuiltInScalar(type) && type.index != -1)
             {
                 listDeltaType = schema.enums[type.index].name + "ListDelta";
             }
@@ -284,14 +302,19 @@ namespace FlatSharpDelta.Compiler
             return $"IReadOnlyList<{listDeltaType}>?";
         }
 
-        public static string GetPropertyDefaultValue(Schema schema, Field field)
+        public static string GetArrayDeltaType(Schema schema, reflection.Type type)
         {
-            if(field.optional)
+            return GetPropertyDeltaType(schema, type, true);
+        }
+
+        public static string GetPropertyDefaultValue(Schema schema, Field field, bool isArray = false)
+        {
+            if(field.optional && !isArray)
             {
                 return "null";
             }
 
-            switch(field.type.base_type)
+            switch(!isArray ? field.type.base_type : field.type.element)
             {
                 case BaseType.Bool:
                     return field.default_integer > 0 ? "true" : "false";
@@ -321,6 +344,11 @@ namespace FlatSharpDelta.Compiler
             }
         }
 
+        public static string GetArrayDefaultValue(Schema schema, Field field)
+        {
+            return GetPropertyDefaultValue(schema, field, true);
+        }
+
         public static bool PropertyTypeIsDerived(Schema schema, reflection.Type type)
         {
             switch(type.base_type)
@@ -335,7 +363,6 @@ namespace FlatSharpDelta.Compiler
                     return _enum.is_union;
 
                 case BaseType.Vector:
-                case BaseType.Array:
                     return true;
 
                 default:
@@ -354,18 +381,32 @@ namespace FlatSharpDelta.Compiler
             return false;
         }
 
-        public static bool PropertyTypeIsIntegral(reflection.Type type)
+        public static bool PropertyListTypeIsValueStruct(Schema schema, reflection.Type type)
+        {
+            if(type.element == BaseType.Obj)
+            {
+                reflection.Object obj = schema.objects[type.index];
+                return obj.is_struct && obj.HasAttribute("fs_valueStruct");
+            }
+
+            return false;
+        }
+
+        public static bool PropertyTypeIsBuiltInScalar(reflection.Type type)
         {
             switch(type.base_type)
             {
+                case BaseType.Bool:
                 case BaseType.Byte:
                 case BaseType.UByte:
                 case BaseType.Short:
                 case BaseType.UShort:
                 case BaseType.Int:
                 case BaseType.UInt:
+                case BaseType.Float:
                 case BaseType.Long:
                 case BaseType.ULong:
+                case BaseType.Double:
                      return true;
 
                 default:
@@ -373,18 +414,21 @@ namespace FlatSharpDelta.Compiler
             }
         }
 
-        public static bool PropertyListTypeIsIntegral(reflection.Type type)
+        public static bool PropertyListTypeIsBuiltInScalar(reflection.Type type)
         {
             switch(type.element)
             {
+                case BaseType.Bool:
                 case BaseType.Byte:
                 case BaseType.UByte:
                 case BaseType.Short:
                 case BaseType.UShort:
                 case BaseType.Int:
                 case BaseType.UInt:
+                case BaseType.Float:
                 case BaseType.Long:
                 case BaseType.ULong:
+                case BaseType.Double:
                      return true;
 
                 default:
@@ -398,20 +442,35 @@ namespace FlatSharpDelta.Compiler
 
             obj.ForEachFieldExceptUType(field =>
             {
-                count++;
+                if(field.type.base_type == BaseType.Array)
+                {
+                    count += field.type.fixed_length;
 
-                if(PropertyTypeIsDerived(schema, field.type))
+                    if(!PropertyListTypeIsBuiltInScalar(field.type) && !PropertyListTypeIsValueStruct(schema, field.type))
+                    {
+                        count += field.type.fixed_length;
+                    }
+                }
+                else
                 {
                     count++;
+
+                    if(PropertyTypeIsDerived(schema, field.type))
+                    {
+                        count++;
+                    }
                 }
             });
 
             return count;
         }
 
-        public static string GetExtensionsType(Schema schema, reflection.Type type)
+        public static string GetExtensionsType(Schema schema, reflection.Type type, bool isArray = false)
         {
-            reflection.Object tempObj = new reflection.Object { name = CodeWriterUtils.GetPropertyType(schema, type) };
+            reflection.Object tempObj = new reflection.Object
+            {
+                name = !isArray ? CodeWriterUtils.GetPropertyType(schema, type) : schema.objects[type.index].name
+            };
 
             if(tempObj.name.LastIndexOf(".") < 0)
             {
@@ -419,6 +478,11 @@ namespace FlatSharpDelta.Compiler
             }
            
             return tempObj.GetNamespace() + ".SupportingTypes." + tempObj.GetNameWithoutNamespace() + "Extensions";
+        }
+
+        public static string GetArrayExtensionsType(Schema schema, reflection.Type type)
+        {
+            return GetExtensionsType(schema, type, true);
         }
     }
 }

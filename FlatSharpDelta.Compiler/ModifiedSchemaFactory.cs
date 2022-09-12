@@ -59,7 +59,7 @@ namespace FlatSharpDelta.Compiler
 
             public void AddPrimitiveDeltaListIndexIfNotExistsInNamespace(string _namespace)
             {
-                if(!PrimitiveListDeltaIndexes.TryGetValue(_namespace, out _))
+                if(!PrimitiveListDeltaIndexes.ContainsKey(_namespace))
                 {
                     ListOperationIndexes[_namespace] = ++CurrentDeltaUnionIndex;
 
@@ -74,12 +74,31 @@ namespace FlatSharpDelta.Compiler
                 }
             }
 
+            public reflection.Type GetArrayTypeForType(Schema baseSchema, reflection.Type type)
+            {
+                reflection.Type arrayType = new reflection.Type();
+
+                arrayType.base_type = type.element;
+                arrayType.index = type.index;
+
+                return arrayType;
+            }
+
+            public reflection.Type GetArrayDeltaTypeForType(Schema baseSchema, reflection.Type type)
+            {
+                reflection.Type arrayDeltaType = new reflection.Type();
+
+                arrayDeltaType.base_type = BaseType.Obj;
+                arrayDeltaType.index = DeltaTableIndexes[baseSchema.objects[type.index]].Item1;
+
+                return arrayDeltaType;
+            }
+
             public reflection.Type GetDeltaTypeForType(Schema baseSchema, string _namespace, reflection.Type type)
             {
                 reflection.Type deltaType = new reflection.Type();
-                bool isArray = type.base_type == BaseType.Vector || type.base_type == BaseType.Array;
 
-                if(!isArray)
+                if(type.base_type != BaseType.Vector)
                 {
                     if(type.base_type != BaseType.Union)
                     {
@@ -153,7 +172,7 @@ namespace FlatSharpDelta.Compiler
                             break;
                     }
 
-                    if(CodeWriterUtils.PropertyListTypeIsIntegral(type) && type.index != -1)
+                    if(CodeWriterUtils.PropertyListTypeIsBuiltInScalar(type) && type.index != -1)
                     {
                         deltaType.index = DeltaUnionIndexes[baseSchema.enums[type.index]].Item2;
                     }
@@ -242,10 +261,7 @@ namespace FlatSharpDelta.Compiler
             {
                 int[] indexes = deltaIndexes.PrimitiveListDeltaIndexes[_namespace];
                 int listOperationIndex = deltaIndexes.ListOperationIndexes[_namespace];
-                baseSchema.enums[listOperationIndex] = PredefinedTypeFactory.GetListOperation
-                (
-                    _namespace + ".SupportingTypes", "//_.fbs"
-                );
+                baseSchema.enums[listOperationIndex] = PredefinedTypeFactory.GetListOperation(_namespace + ".SupportingTypes", "//_.fbs");
                 reflection.Object[] primitiveListDeltaTypes = PredefinedTypeFactory.GetPrimitiveListDeltaTypes
                 (
                     _namespace,
@@ -277,8 +293,7 @@ namespace FlatSharpDelta.Compiler
                         continue;
                     }
 
-                    bool isArray = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array;
-                    BaseType typeToCheck = isArray ? field.type.element : field.type.base_type;
+                    BaseType typeToCheck = field.type.base_type == BaseType.Vector || field.type.base_type == BaseType.Array ? field.type.element : field.type.base_type;
 
                     if(typeToCheck == BaseType.Obj)
                     {
@@ -305,8 +320,7 @@ namespace FlatSharpDelta.Compiler
                         continue;
                     }
 
-                    bool isArray = enumVal.union_type.base_type == BaseType.Vector || enumVal.union_type.base_type == BaseType.Array;
-                    BaseType typeToCheck = isArray ? enumVal.union_type.element : enumVal.union_type.base_type;
+                    BaseType typeToCheck = enumVal.union_type.base_type == BaseType.Vector || enumVal.union_type.base_type == BaseType.Array ? enumVal.union_type.element : enumVal.union_type.base_type;
 
                     if(typeToCheck == BaseType.Obj)
                     {
@@ -346,7 +360,59 @@ namespace FlatSharpDelta.Compiler
                 field.required = false;
                 field.RemoveAttribute("required");
 
-                if(CodeWriterUtils.PropertyTypeIsDerived(baseSchema, field.type))
+                if(field.type.base_type == BaseType.Array)
+                {
+                    int removalIndex = deltaObj.fields.IndexOf(field);
+                    DecreaseIdAndOffset(deltaObj, 1, 2, field.id + 1);
+                    deltaObj.fields.RemoveAt(removalIndex);
+
+                    bool isBuiltInScalar = CodeWriterUtils.PropertyListTypeIsBuiltInScalar(field.type);
+                    bool isValueStruct = CodeWriterUtils.PropertyListTypeIsValueStruct(baseSchema, field.type);
+                    ushort id = field.id;
+                    ushort offset = field.offset;
+                    int index = i;
+
+                    for(int arrayIndex = 0; arrayIndex < field.type.fixed_length; arrayIndex++)
+                    {
+                        Field arrayIndexField = new Field
+                        {
+                            name = $"{field.name}_{arrayIndex}",
+                            type = deltaIndexes.GetArrayTypeForType(baseSchema, field.type),
+                            id = id,
+                            offset = offset,
+                            optional = !isBuiltInScalar,
+                        };
+
+                        arrayIndexField.SetAttribute("fs_setter", "Protected");
+                        IncreaseIdAndOffset(deltaObj, 1, 2, id);
+                        deltaObj.fields.Insert(index, arrayIndexField);
+
+                        id++;
+                        offset += 2;
+                        index++;
+
+                        if(!isBuiltInScalar && !isValueStruct)
+                        {
+                            Field arrayIndexDeltaField = new Field
+                            {
+                                name = $"{field.name}_{arrayIndex}Delta",
+                                type = deltaIndexes.GetArrayDeltaTypeForType(baseSchema, field.type),
+                                id = id,
+                                offset = offset,
+                                optional = true,
+                            };
+
+                            arrayIndexDeltaField.SetAttribute("fs_setter", "Protected");
+                            IncreaseIdAndOffset(deltaObj, 1, 2, id);
+                            deltaObj.fields.Insert(index, arrayIndexDeltaField);
+
+                            id++;
+                            offset += 2;
+                            index++;
+                        }
+                    }
+                }
+                else if(CodeWriterUtils.PropertyTypeIsDerived(baseSchema, field.type))
                 {
                     field.optional = true;
 
@@ -625,6 +691,15 @@ namespace FlatSharpDelta.Compiler
             {
                 field.id += idBy;
                 field.offset += offsetBy;
+            });
+        }
+
+        private static void DecreaseIdAndOffset(reflection.Object obj, ushort idBy, ushort offsetBy, int startingId)
+        {
+            obj.fields.Where(f => f.id >= startingId).OrderBy(f => f.id).ToList().ForEach(field =>
+            {
+                field.id -= idBy;
+                field.offset -= offsetBy;
             });
         }
 

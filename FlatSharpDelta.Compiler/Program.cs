@@ -245,10 +245,6 @@ namespace FlatSharpDelta.Compiler
                     File.WriteAllText(codeFilePath, primitiveListTypesCode);
                 });
             }
-            catch(AggregateException exception)
-            {
-                ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
-            }
             finally
             {
                 Directory.Delete(tempDirPath, true);

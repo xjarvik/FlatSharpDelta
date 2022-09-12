@@ -34,15 +34,10 @@ namespace FlatSharpDelta.Compiler
                     continue;
                 }
 
-                if(!obj.is_struct)
+                if(!obj.is_struct || !obj.HasAttribute("fs_valueStruct"))
                 {
-                    code += TableCodeWriter.WriteCode(schema, obj);
-                    code += TableListCodeWriter.WriteCode(schema, obj);
-                }
-                else if(!obj.HasAttribute("fs_valueStruct"))
-                {
-                    code += ReferenceStructCodeWriter.WriteCode(schema, obj);
-                    code += ReferenceStructListCodeWriter.WriteCode(schema, obj);
+                    code += ReferenceTypeCodeWriter.WriteCode(schema, obj);
+                    code += ReferenceTypeListCodeWriter.WriteCode(schema, obj);
                 }
                 else
                 {

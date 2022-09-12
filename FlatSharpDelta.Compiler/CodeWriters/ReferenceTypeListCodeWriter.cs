@@ -5,7 +5,7 @@ using reflection;
 
 namespace FlatSharpDelta.Compiler
 {
-    static class TableListCodeWriter
+    static class ReferenceTypeListCodeWriter
     {
         public static string WriteCode(Schema schema, reflection.Object obj)
         {
