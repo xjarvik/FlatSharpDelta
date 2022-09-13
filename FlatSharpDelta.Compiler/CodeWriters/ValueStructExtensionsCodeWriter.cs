@@ -35,7 +35,8 @@ namespace FlatSharpDelta.Compiler
             return obj.fields
                 .Select(field =>
                 {
-                    if(CodeWriterUtils.PropertyTypeIsValueStruct(schema, field.type))
+                    if(CodeWriterUtils.PropertyTypeIsValueStruct(schema, field.type)
+                    || (field.type.base_type == BaseType.Array && CodeWriterUtils.PropertyListTypeIsValueStruct(schema, field.type)))
                     {
                         return schema.objects[field.type.index].GetNamespace();
                     }

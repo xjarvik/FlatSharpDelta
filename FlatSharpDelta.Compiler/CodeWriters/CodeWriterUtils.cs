@@ -79,7 +79,7 @@ namespace FlatSharpDelta.Compiler
                     return null;
             }
 
-            if(PropertyTypeIsBuiltInScalar(type) && type.index != -1)
+            if((!isArray ? PropertyTypeIsBuiltInScalar(type) : PropertyListTypeIsBuiltInScalar(type)) && type.index != -1)
             {
                 propertyType = schema.enums[type.index].name;
             }

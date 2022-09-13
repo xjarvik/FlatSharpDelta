@@ -382,7 +382,6 @@ namespace FlatSharpDelta.Compiler
         private static string GetArrayScalarDeltaComparison(Schema schema, Field field, int fieldIndex, int arrayIndex)
         {
             bool isValueStruct = CodeWriterUtils.PropertyListTypeIsValueStruct(schema, field.type);
-            string extensionsType = CodeWriterUtils.GetArrayExtensionsType(schema, field.type);
             string equalityCheck = String.Empty;
 
             if(!isValueStruct)
@@ -391,6 +390,7 @@ namespace FlatSharpDelta.Compiler
             }
             else
             {
+                string extensionsType = CodeWriterUtils.GetArrayExtensionsType(schema, field.type);
                 equalityCheck = $"!{extensionsType}.IsEqualTo(__flatsharp__{field.name}_{arrayIndex}, original.__flatsharp__{field.name}_{arrayIndex})";
             }
 

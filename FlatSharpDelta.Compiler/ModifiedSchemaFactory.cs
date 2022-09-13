@@ -656,7 +656,7 @@ namespace FlatSharpDelta.Compiler
             };
             shortFields.offset = 6;
 
-            if(GetIndexCount(baseSchema, baseObj) <= 256)
+            if(CodeWriterUtils.GetDeltaFieldsCount(baseSchema, baseObj) <= 256)
             {
                 shortFields.deprecated = true;
                 shortFields.SetAttribute("deprecated");
@@ -666,23 +666,6 @@ namespace FlatSharpDelta.Compiler
             shortFields.SetAttribute("fs_vector", "IReadOnlyList");
 
             return shortFields;
-        }
-
-        private static int GetIndexCount(Schema baseSchema, reflection.Object baseObj)
-        {
-            int count = 0;
-
-            foreach(Field field in baseObj.fields)
-            {
-                count++;
-
-                if(CodeWriterUtils.PropertyTypeIsDerived(baseSchema, field.type))
-                {
-                    count++;
-                }
-            }
-
-            return count;
         }
 
         private static void IncreaseIdAndOffset(reflection.Object obj, ushort idBy, ushort offsetBy, int startingId)
