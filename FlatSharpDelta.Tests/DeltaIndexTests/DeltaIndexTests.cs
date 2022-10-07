@@ -39,6 +39,7 @@ namespace FlatSharpDelta.Tests
             bar1.SetProperty("Prop1", 1);
             bar1.SetProperty("Prop248", 248);
             bar1.SetProperty("Prop249", 249);
+            bar1.SetProperty("Prop257", 257);
             GeneratedType bar2 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
 
             // Act
@@ -49,6 +50,7 @@ namespace FlatSharpDelta.Tests
             Assert.Equal(1, bar2.GetProperty("Prop1"));
             Assert.Equal(248, bar2.GetProperty("Prop248"));
             Assert.Equal(249, bar2.GetProperty("Prop249"));
+            Assert.Equal(257, bar2.GetProperty("Prop257"));
         }
     }
 }

@@ -94,6 +94,11 @@ namespace FlatSharpDelta.Tests
             return gbt;
         }
 
+        public object GetArrayItem(string fieldName, int index)
+        {
+            return type.GetField($"__flatsharp__{fieldName}_{index}", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(obj);
+        }
+
         public void SetIndexerProperty(object index, object value)
         {
             type.GetProperties().First(property => property.Name == "Item").SetValue(obj, value, new object[] { index });
@@ -122,6 +127,11 @@ namespace FlatSharpDelta.Tests
         public void SetField(string fieldName, GeneratedBaseType value)
         {
             type.GetFields().First(field => field.Name == fieldName).SetValue(obj, value.NativeObject);
+        }
+
+        public void SetArrayItem(string fieldName, int index, object value)
+        {
+            type.GetField($"__flatsharp__{fieldName}_{index}", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(obj, value);
         }
 
         public static bool operator==(GeneratedBaseType obj1, GeneratedBaseType obj2)

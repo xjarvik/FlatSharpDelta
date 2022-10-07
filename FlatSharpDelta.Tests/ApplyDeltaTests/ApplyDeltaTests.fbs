@@ -3,16 +3,36 @@ namespace FooBar;
 attribute "fs_serializer";
 attribute "fs_valueStruct";
 
+struct Foo00 {
+    Abc00:int;
+}
+
+struct Foo01 (fs_valueStruct) {
+    Abc01:int;
+}
+
+enum Foo02 : ubyte {
+    Val1 = 1,
+    Val2 = 2,
+    Val3 = 3
+}
+
 table Foo1 {
     Abc1:int;
 }
 
 struct Foo2 {
     Abc2:int;
+    Foo00Array:[Foo00:3];
+    Foo01Array:[Foo01:3];
+    Foo02Array:[Foo02:7];
+    IntArray:[int:5];
 }
 
 struct Foo3 (fs_valueStruct) {
     Abc3:int;
+    Foo02Array:[Foo02:7];
+    IntArray:[int:5];
 }
 
 enum Foo4 : ubyte {
