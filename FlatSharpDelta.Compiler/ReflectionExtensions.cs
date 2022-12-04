@@ -3,152 +3,255 @@ using System.Collections.Generic;
 using System.Linq;
 using reflection;
 
+namespace reflection
+{
+    public interface INameProperty
+    {
+        string name { get; set; }
+    }
+
+    public interface IAttributesProperty
+    {
+        IList<KeyValue> attributes { get; set; }
+    }
+
+    public partial class Object : INameProperty, IAttributesProperty
+    {
+    }
+
+    public partial class Enum : INameProperty, IAttributesProperty
+    {
+    }
+
+    public partial class Service : INameProperty, IAttributesProperty
+    {
+    }
+
+    public partial class Field : INameProperty, IAttributesProperty
+    {
+    }
+}
+
 namespace FlatSharpDelta.Compiler
 {
-    static class ReflectionExtensions
+    static class INamePropertyExtensions
     {
-        // reflection.Schema
+        public static string GetNamespace(this INameProperty self) => self.name.Substring(0, self.name.LastIndexOf("."));
 
-        public static void ReplaceMatchingDeclarationFiles(this Schema schema, string declarationFileToMatch, string replacementDeclarationFile)
+        public static string GetNameWithoutNamespace(this INameProperty self) => self.name.Substring(self.name.LastIndexOf(".") + 1);
+    }
+
+    static class IAttributesPropertyExtensions
+    {
+        public static bool HasAttribute(this IAttributesProperty self, string key) => self.attributes != null && self.attributes.Any(kv => kv.key == key);
+
+        public static KeyValue GetAttribute(this IAttributesProperty self, string key) => self.attributes != null ? self.attributes.First(kv => kv.key == key) : null;
+
+        public static void SetAttribute(this IAttributesProperty self, string key, string value = null)
         {
-            foreach(reflection.Object obj in schema.objects)
+            if (self.HasAttribute(key))
             {
-                obj.ReplaceMatchingDeclarationFile(declarationFileToMatch, replacementDeclarationFile);
-            }
-
-            foreach(reflection.Enum _enum in schema.enums)
-            {
-                _enum.ReplaceMatchingDeclarationFile(declarationFileToMatch, replacementDeclarationFile);
-            }
-
-            foreach(Service service in schema.services)
-            {
-                service.ReplaceMatchingDeclarationFile(declarationFileToMatch, replacementDeclarationFile);
-            }
-        }
-
-        public static HashSet<string> GetAllNamespaces(this Schema schema)
-        {
-            HashSet<string> namespaces = new HashSet<string>();
-
-            schema.objects.ToList().ForEach(obj => namespaces.Add(obj.GetNamespace()));
-            schema.enums.ToList().ForEach(_enum => namespaces.Add(_enum.GetNamespace()));
-
-            return namespaces;
-        }
-
-
-        // reflection.Object
-
-        public static bool HasAttribute(this reflection.Object obj, string key) => obj.attributes != null && obj.attributes.Any(kv => kv.key == key);
-
-        public static KeyValue GetAttribute(this reflection.Object obj, string key) => obj.attributes != null ? obj.attributes.First(kv => kv.key == key) : null;
-
-        public static void SetAttribute(this reflection.Object obj, string key, string value = null)
-        {
-            if(obj.HasAttribute(key))
-            {
-                obj.GetAttribute(key).value = value;
+                self.GetAttribute(key).value = value;
             }
             else
             {
-                if(obj.attributes == null)
+                if (self.attributes == null)
                 {
-                    obj.attributes = new List<KeyValue>();
+                    self.attributes = new List<KeyValue>();
                 }
 
-                obj.attributes.Add(new KeyValue
-                {
-                    key = key,
-                    value = value
-                });
+                self.attributes.Add
+                (
+                    new KeyValue
+                    {
+                        key = key,
+                        value = value
+                    }
+                );
             }
         }
 
-        public static bool RemoveAttribute(this reflection.Object obj, string key) => obj.HasAttribute(key) ? obj.attributes.Remove(obj.GetAttribute(key)) : false;
+        public static bool RemoveAttribute(this IAttributesProperty self, string key) => self.HasAttribute(key) ? self.attributes.Remove(self.GetAttribute(key)) : false;
+    }
 
-        public static string GetNamespace(this reflection.Object obj) => obj.name.Substring(0, obj.name.LastIndexOf("."));
-
-        public static string GetNameWithoutNamespace(this reflection.Object obj) => obj.name.Substring(obj.name.LastIndexOf(".") + 1);
-
-        public static void ReplaceMatchingDeclarationFile(this reflection.Object obj, string declarationFileToMatch, string replacementDeclarationFile)
+    static class SchemaExtensions
+    {
+        public static void ReplaceMatchingDeclarationFiles(this Schema schema, string declarationFileToMatch, string replacementDeclarationFile)
         {
-            if(obj.declaration_file == declarationFileToMatch)
+            foreach (reflection.Object obj in schema.objects)
             {
-                obj.declaration_file = replacementDeclarationFile;
+                if (obj.declaration_file == declarationFileToMatch)
+                {
+                    obj.declaration_file = replacementDeclarationFile;
+                }
+            }
+
+            foreach (reflection.Enum _enum in schema.enums)
+            {
+                if (_enum.declaration_file == declarationFileToMatch)
+                {
+                    _enum.declaration_file = replacementDeclarationFile;
+                }
+            }
+
+            foreach (Service service in schema.services)
+            {
+                if (service.declaration_file == declarationFileToMatch)
+                {
+                    service.declaration_file = replacementDeclarationFile;
+                }
             }
         }
 
-        public static void ForEachFieldExceptUType(this reflection.Object obj, Action<Field, int> callback)
+        private static bool BaseTypeIsScalar(BaseType baseType)
         {
-            int i = 0;
-
-            obj.fields.OrderBy(f => f.id).ToList().ForEach(field =>
+            switch (baseType)
             {
-                if(field.type.base_type != BaseType.UType && field.type.element != BaseType.UType)
+                case BaseType.Bool:
+                case BaseType.Byte:
+                case BaseType.UByte:
+                case BaseType.Short:
+                case BaseType.UShort:
+                case BaseType.Int:
+                case BaseType.UInt:
+                case BaseType.Float:
+                case BaseType.Long:
+                case BaseType.ULong:
+                case BaseType.Double:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static bool TypeIsScalar(this Schema schema, reflection.Type type) => BaseTypeIsScalar(type.base_type) && type.index == -1;
+
+        public static bool TypeIsScalarList(this Schema schema, reflection.Type type) => type.base_type == BaseType.Vector && BaseTypeIsScalar(type.element) && type.index == -1;
+
+        public static bool TypeIsScalarArray(this Schema schema, reflection.Type type) => type.base_type == BaseType.Array && BaseTypeIsScalar(type.element) && type.index == -1;
+
+        public static bool TypeIsString(this Schema schema, reflection.Type type) => type.base_type == BaseType.String;
+
+        public static bool TypeIsStringList(this Schema schema, reflection.Type type) => type.base_type == BaseType.Vector && type.element == BaseType.String;
+
+        public static bool TypeIsReferenceType(this Schema schema, reflection.Type type) => type.base_type == BaseType.Obj && schema.objects[type.index].IsReferenceType();
+
+        public static bool TypeIsReferenceTypeList(this Schema schema, reflection.Type type) => type.base_type == BaseType.Vector && type.element == BaseType.Obj && schema.objects[type.index].IsReferenceType();
+
+        public static bool TypeIsReferenceTypeArray(this Schema schema, reflection.Type type) => type.base_type == BaseType.Array && type.element == BaseType.Obj && schema.objects[type.index].IsReferenceType();
+
+        public static bool TypeIsValueStruct(this Schema schema, reflection.Type type) => type.base_type == BaseType.Obj && schema.objects[type.index].IsValueStruct();
+
+        public static bool TypeIsValueStructList(this Schema schema, reflection.Type type) => type.base_type == BaseType.Vector && type.element == BaseType.Obj && schema.objects[type.index].IsValueStruct();
+
+        public static bool TypeIsValueStructArray(this Schema schema, reflection.Type type) => type.base_type == BaseType.Array && type.element == BaseType.Obj && schema.objects[type.index].IsValueStruct();
+
+        public static bool TypeIsEnum(this Schema schema, reflection.Type type) => BaseTypeIsScalar(type.base_type) && type.index != -1;
+
+        public static bool TypeIsEnumList(this Schema schema, reflection.Type type) => type.base_type == BaseType.Vector && BaseTypeIsScalar(type.element) && type.index != -1;
+
+        public static bool TypeIsEnumArray(this Schema schema, reflection.Type type) => type.base_type == BaseType.Array && BaseTypeIsScalar(type.element) && type.index != -1;
+
+        public static bool TypeIsUnion(this Schema schema, reflection.Type type) => type.base_type == BaseType.Union && schema.enums[type.index].IsUnion();
+
+        public static bool TypeIsUnionList(this Schema schema, reflection.Type type) => type.base_type == BaseType.Vector && type.element == BaseType.Union && schema.enums[type.index].IsUnion();
+
+        public static int GetFieldCountIncludingDeltaFields(this Schema schema, reflection.Object obj)
+        {
+            return obj.fields.Sum(field =>
+            {
+                if (field.type.base_type == BaseType.UType || field.type.element == BaseType.UType)
                 {
-                    callback(field, i);
-                    i++;
+                    return 0;
                 }
+
+                if (schema.TypeIsScalarList(field.type)
+                || schema.TypeIsStringList(field.type)
+                || schema.TypeIsReferenceType(field.type)
+                || schema.TypeIsReferenceTypeList(field.type)
+                || schema.TypeIsValueStructList(field.type)
+                || schema.TypeIsEnumList(field.type)
+                || schema.TypeIsUnion(field.type)
+                || schema.TypeIsUnionList(field.type))
+                {
+                    return 2;
+                }
+                else if (schema.TypeIsScalarArray(field.type)
+                || schema.TypeIsValueStructArray(field.type)
+                || schema.TypeIsEnumArray(field.type))
+                {
+                    return field.type.fixed_length;
+                }
+                else if (schema.TypeIsReferenceTypeArray(field.type))
+                {
+                    return field.type.fixed_length * 2;
+                }
+
+                return 1;
             });
         }
 
-        public static void ForEachFieldExceptUType(this reflection.Object obj, Action<Field> callback) => obj.ForEachFieldExceptUType((field, _) => callback(field));
-        
+        public static string GetNameOfObjectWithIndex(this Schema schema, int index) => schema.objects[index].name;
 
-        // reflection.Enum
+        public static int GetIndexOfObjectWithName(this Schema schema, string name) => schema.objects.IndexOf(schema.objects.First(obj => obj.name == name));
 
-        public static string GetNamespace(this reflection.Enum _enum) => _enum.name.Substring(0, _enum.name.LastIndexOf("."));
+        public static string GetNameOfEnumWithIndex(this Schema schema, int index) => schema.enums[index].name;
 
-        public static string GetNameWithoutNamespace(this reflection.Enum _enum) => _enum.name.Substring(_enum.name.LastIndexOf(".") + 1);
+        public static int GetIndexOfEnumWithName(this Schema schema, string name) => schema.enums.IndexOf(schema.enums.First(_enum => _enum.name == name));
 
-        public static void ReplaceMatchingDeclarationFile(this reflection.Enum _enum, string declarationFileToMatch, string replacementDeclarationFile)
+        public static reflection.Type GetTypeFromObject(this Schema schema, reflection.Object obj)
         {
-            if(_enum.declaration_file == declarationFileToMatch)
+            return new reflection.Type
             {
-                _enum.declaration_file = replacementDeclarationFile;
-            }
+                base_type = BaseType.Obj,
+                index = schema.objects.IndexOf(obj)
+            };
         }
 
-
-        // reflection.Field
-
-        public static bool HasAttribute(this Field field, string key) => field.attributes != null && field.attributes.Any(kv => kv.key == key);
-
-        public static KeyValue GetAttribute(this Field field, string key) => field.attributes != null ? field.attributes.First(kv => kv.key == key) : null;
-
-        public static void SetAttribute(this Field field, string key, string value = null)
+        public static reflection.Type GetTypeFromEnum(this Schema schema, reflection.Enum _enum)
         {
-            if(field.HasAttribute(key))
+            return new reflection.Type
             {
-                field.GetAttribute(key).value = value;
-            }
-            else
+                base_type = _enum.IsUnion() ? BaseType.Union : _enum.underlying_type.base_type,
+                index = schema.enums.IndexOf(_enum)
+            };
+        }
+    }
+
+    static class ObjectExtensions
+    {
+        public static void ForEachFieldExceptUType(this reflection.Object obj, Action<Field> callback)
+        {
+            foreach (Field field in obj.fields.OrderBy(f => f.id))
             {
-                if(field.attributes == null)
+                if (field.type.base_type != BaseType.UType && field.type.element != BaseType.UType)
                 {
-                    field.attributes = new List<KeyValue>();
+                    callback(field);
                 }
-
-                field.attributes.Add(new KeyValue
-                {
-                    key = key,
-                    value = value
-                });
             }
         }
 
-        public static bool RemoveAttribute(this Field field, string key) => field.HasAttribute(key) ? field.attributes.Remove(field.GetAttribute(key)) : false;
-
-
-        // reflection.Service
-
-        public static void ReplaceMatchingDeclarationFile(this Service service, string declarationFileToMatch, string replacementDeclarationFile)
+        public static bool IsReferenceType(this reflection.Object obj)
         {
-            if(service.declaration_file == declarationFileToMatch)
-            {
-                service.declaration_file = replacementDeclarationFile;
-            }
+            KeyValue attribute = obj.GetAttribute("fs_valueStruct");
+            return attribute == null || (attribute.value == "false" && obj.is_struct);
         }
+
+        public static bool IsValueStruct(this reflection.Object obj)
+        {
+            KeyValue attribute = obj.GetAttribute("fs_valueStruct");
+            return attribute != null && attribute.value != "false" && obj.is_struct;
+        }
+    }
+
+    static class EnumExtensions
+    {
+        public static bool IsUnion(this reflection.Enum _enum) => _enum.is_union;
+    }
+
+    static class TypeExtensions
+    {
+        public static BaseType GetBaseTypeOrElement(this reflection.Type type) => type.element == BaseType.None ? type.base_type : type.element;
     }
 }

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace FlatSharpDelta.Compiler
 {
-    class CompilerStartInfo
+    public class CompilerStartInfo
     {
         public FileInfo[] InputFiles { get; set; }
         public DirectoryInfo OutputDirectory { get; set; }

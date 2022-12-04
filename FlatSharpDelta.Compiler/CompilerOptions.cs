@@ -3,7 +3,7 @@ using CommandLine;
 
 namespace FlatSharpDelta.Compiler
 {
-    class CompilerOptions
+    public class CompilerOptions
     {
         [Option('i', "input", Required = true, HelpText = "Input file(s).")]
         public string Input { get; set; }

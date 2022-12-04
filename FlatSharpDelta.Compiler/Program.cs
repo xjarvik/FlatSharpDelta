@@ -20,44 +20,32 @@ namespace FlatSharpDelta.Compiler
         public static int Main(string[] args)
         {
             int exitCode = -1;
-            bool debugMode = false;
 
-            try
+            Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed(compilerOptions =>
             {
-                Parser.Default.ParseArguments<CompilerOptions>(args).WithParsed(compilerOptions =>
+                try
                 {
-                    debugMode = compilerOptions.DebugMode;
-
-                    FileInfo baseCompilerFile = compilerOptions.BaseCompiler != null ?
-                        GetBaseCompilerFile(compilerOptions.BaseCompiler) :
-                        new FileInfo(Path.Combine
-                        (
-                            Path.GetDirectoryName(typeof(Program).Assembly.Location),
-                            "FlatSharp.Compiler",
-                            "FlatSharp.Compiler.dll"
-                        ));
-
                     CompilerStartInfo compilerStartInfo = new CompilerStartInfo
                     {
                         InputFiles = GetInputFiles(compilerOptions.Input),
                         OutputDirectory = GetOutputDirectory(compilerOptions.Output),
-                        BaseCompilerFile = baseCompilerFile
+                        BaseCompilerFile = compilerOptions.BaseCompiler != null ? GetBaseCompilerFile(compilerOptions.BaseCompiler) : GetIncludedBaseCompilerFile()
                     };
 
-                    if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                     {
                         ChmodFakeFlatc();
                     }
 
                     RunCompiler(compilerStartInfo);
-                });
-                
-                exitCode = 0;
-            }
-            catch(Exception exception)
-            {
-                HandleException(exception, debugMode);
-            }
+
+                    exitCode = 0;
+                }
+                catch (Exception exception)
+                {
+                    HandleException(exception, compilerOptions.DebugMode);
+                }
+            });
 
             return exitCode;
         }
@@ -70,18 +58,19 @@ namespace FlatSharpDelta.Compiler
                 string inputDirectory;
                 string inputWildcard;
 
-                if(PathIsDirectory(sanitizedInputPath))
+                if (PathIsDirectory(sanitizedInputPath))
                 {
                     throw new FlatSharpDeltaException($"{input} is not a valid path.");
                 }
-                
+
                 int lastSlashIndex = sanitizedInputPath.LastIndexOf("/");
-                if(lastSlashIndex == -1)
+
+                if (lastSlashIndex == -1)
                 {
                     inputDirectory = "./";
                     inputWildcard = sanitizedInputPath;
                 }
-                else if(!PathIsDirectory(sanitizedInputPath.Substring(0, lastSlashIndex)))
+                else if (!PathIsDirectory(sanitizedInputPath.Substring(0, lastSlashIndex)))
                 {
                     throw new FlatSharpDeltaException($"{input} is not a valid path.");
                 }
@@ -92,10 +81,12 @@ namespace FlatSharpDelta.Compiler
                 }
 
                 string[] files = Directory.GetFiles(inputDirectory, inputWildcard);
-                if(files.Length < 1)
+
+                if (files.Length < 1)
                 {
                     throw new FlatSharpDeltaException($"{input} is not a valid path.");
                 }
+
                 return files.Select(f => new FileInfo(f));
             }).ToArray();
         }
@@ -104,7 +95,7 @@ namespace FlatSharpDelta.Compiler
         {
             string sanitizedOutputPath = GetSanitizedPath(output);
 
-            if(!PathIsDirectory(sanitizedOutputPath))
+            if (!PathIsDirectory(sanitizedOutputPath))
             {
                 throw new FlatSharpDeltaException($"{output} is not a valid directory.");
             }
@@ -116,7 +107,7 @@ namespace FlatSharpDelta.Compiler
         {
             string sanitizedBaseCompilerPath = GetSanitizedPath(baseCompiler);
 
-            if(!File.Exists(sanitizedBaseCompilerPath))
+            if (!File.Exists(sanitizedBaseCompilerPath))
             {
                 throw new FlatSharpDeltaException($"{baseCompiler} is not a valid FlatSharp compiler.");
             }
@@ -124,13 +115,23 @@ namespace FlatSharpDelta.Compiler
             return new FileInfo(sanitizedBaseCompilerPath);
         }
 
+        static FileInfo GetIncludedBaseCompilerFile()
+        {
+            return new FileInfo
+            (
+                Path.Combine(Path.GetDirectoryName(typeof(Program).Assembly.Location), "FlatSharp.Compiler", "FlatSharp.Compiler.dll")
+            );
+        }
+
         static string GetSanitizedPath(string path)
         {
             path = Regex.Replace(path, @"\\+", "/");
-            if(path.EndsWith("/"))
+
+            if (path.EndsWith("/"))
             {
                 path = path.Substring(0, path.Length - 1);
             }
+
             return path;
         }
 
@@ -138,10 +139,11 @@ namespace FlatSharpDelta.Compiler
         {
             try
             {
-                if(File.GetAttributes(path).HasFlag(FileAttributes.Directory))
+                if (File.GetAttributes(path).HasFlag(FileAttributes.Directory))
                 {
                     return true;
                 }
+
                 return false;
             }
             catch
@@ -167,13 +169,13 @@ namespace FlatSharpDelta.Compiler
             process.WaitForExit();
         }
 
-        static void HandleException(Exception exception, bool debugMode = false)
+        static void HandleException(Exception exception, bool debugMode)
         {
-            if(debugMode)
+            if (debugMode)
             {
                 throw exception;
             }
-            else if(exception is FlatSharpDeltaException)
+            else if (exception is FlatSharpDeltaException)
             {
                 Console.WriteLine(exception.Message);
             }
@@ -191,37 +193,29 @@ namespace FlatSharpDelta.Compiler
 
             try
             {
-                HashSet<string> namespaces = new HashSet<string>();
-                object namespacesLock = new object();
-
                 Parallel.ForEach(startInfo.InputFiles, inputFile =>
                 {
                     byte[] originalSchemaBfbs = GetBfbs(inputFile, tempDir, out FileInfo bfbsFile);
                     Schema originalSchema = Schema.Serializer.Parse(originalSchemaBfbs);
-                    Schema modifiedSchema = ModifiedSchemaFactory.GetModifiedSchema(originalSchema);
+                    Schema schemaWithDeltaTypes = DeltaSchemaFactory.GetSchemaWithDeltaTypes(originalSchema);
 
                     // FlatSharp only generates code for an object if the declaration_file value equals the name of the
-                    // input file where the object is defined.
-                    modifiedSchema.ReplaceMatchingDeclarationFiles
+                    // input file in which the object is declared.
+                    schemaWithDeltaTypes.ReplaceMatchingDeclarationFiles
                     (
                         "//" + inputFile.Name,
                         "//" + Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs"
                     );
 
-                    byte[] modifiedSchemaBfbs = new byte[Schema.Serializer.GetMaxSize(modifiedSchema)];
-                    Schema.Serializer.Write(modifiedSchemaBfbs, modifiedSchema);
-                    File.WriteAllBytes(bfbsFile.FullName, modifiedSchemaBfbs);
+                    byte[] schemaWithDeltaTypesBfbs = new byte[Schema.Serializer.GetMaxSize(schemaWithDeltaTypes)];
+                    Schema.Serializer.Write(schemaWithDeltaTypesBfbs, schemaWithDeltaTypes);
+                    File.WriteAllBytes(bfbsFile.FullName, schemaWithDeltaTypesBfbs);
 
-                    GenerateFlatSharpCode(startInfo.BaseCompilerFile, bfbsFile, startInfo.OutputDirectory);
-                    GenerateFlatSharpDeltaCode(originalSchema, inputFile, startInfo.OutputDirectory);
-
-                    lock(namespacesLock)
-                    {
-                        namespaces.UnionWith(originalSchema.GetAllNamespaces());
-                    }
+                    GenerateFlatSharpCode(startInfo.BaseCompilerFile, bfbsFile, startInfo.OutputDirectory); // these two
+                    GenerateFlatSharpDeltaCode(originalSchema, inputFile, startInfo.OutputDirectory); // can run in parallel (await?)
                 });
 
-                Parallel.ForEach(namespaces, _namespace =>
+                /*Parallel.ForEach(namespaces, _namespace =>
                 {
                     string fileName = _namespace.Replace('.', '_') + "_PredefinedTypes.bfbs";
                     FileInfo bfbsFile = new FileInfo(Path.Combine(tempDir.FullName, fileName));
@@ -239,11 +233,11 @@ namespace FlatSharpDelta.Compiler
                     string codeFilePath = Path.Combine
                     (
                         startInfo.OutputDirectory.FullName,
-                        _namespace.Replace('.', '_')  + "_PredefinedTypes.flatsharpdelta.generated.cs"
+                        _namespace.Replace('.', '_') + "_PredefinedTypes.flatsharpdelta.generated.cs"
                     );
 
                     File.WriteAllText(codeFilePath, primitiveListTypesCode);
-                });
+                });*/
             }
             finally
             {
@@ -266,7 +260,7 @@ namespace FlatSharpDelta.Compiler
             },
             out string consoleOutput);
 
-            if(exitCode != 0)
+            if (exitCode != 0)
             {
                 throw new FlatSharpDeltaException
                 (
@@ -300,7 +294,7 @@ namespace FlatSharpDelta.Compiler
             },
             out string consoleOutput);
 
-            if(exitCode != 0)
+            if (exitCode != 0)
             {
                 throw new FlatSharpDeltaException
                 (
@@ -365,7 +359,7 @@ namespace FlatSharpDelta.Compiler
                 }
             };
 
-            foreach(string arg in args)
+            foreach (string arg in args)
             {
                 process.StartInfo.ArgumentList.Add(arg);
             }
@@ -398,7 +392,7 @@ namespace FlatSharpDelta.Compiler
             };
 
             process.StartInfo.ArgumentList.Add(path);
-            foreach(string arg in args)
+            foreach (string arg in args)
             {
                 process.StartInfo.ArgumentList.Add(arg);
             }
@@ -421,12 +415,12 @@ namespace FlatSharpDelta.Compiler
             string shell;
             string name;
 
-            if(RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 shell = "cmd";
                 name = "fake-flatc.cmd";
             }
-            else if(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 shell = "bash";
                 name = "fake-flatc.sh";
