@@ -138,7 +138,7 @@ namespace FlatSharpDelta.Compiler
 
         private static void AddListOperation(Context context)
         {
-            context.Schema.enums[context.ListOperationIndex] = PredefinedTypeFactory.GetListOperation();
+            context.Schema.enums[context.ListOperationIndex] = BuiltInTypeFactory.GetListOperation();
         }
 
         private static void AddObjectListDeltaTypes(Context context)
@@ -163,7 +163,7 @@ namespace FlatSharpDelta.Compiler
 
         private static void AddBuiltInListDeltaTypes(Context context)
         {
-            Dictionary<BaseType, reflection.Object> builtInListDeltaTypes = PredefinedTypeFactory.GetBuiltInListDeltaTypes(context.ListOperationIndex);
+            Dictionary<BaseType, reflection.Object> builtInListDeltaTypes = BuiltInTypeFactory.GetBuiltInListDeltaTypes(context.ListOperationIndex);
             foreach (KeyValuePair<BaseType, int> kvp in context.BuiltInListDeltaTypeIndexes)
             {
                 context.Schema.objects[kvp.Value] = builtInListDeltaTypes[kvp.Key];

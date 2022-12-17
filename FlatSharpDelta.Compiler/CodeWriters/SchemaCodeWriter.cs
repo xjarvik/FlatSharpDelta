@@ -22,19 +22,19 @@ namespace FlatSharpDelta.Compiler
                 using System.Collections;
                 using System.Collections.Generic;
                 using System.Collections.ObjectModel;
-                using System.Reflection;
                 using FlatSharp;
+                using FlatSharpDelta;
                 #nullable enable annotations
             ";
 
-            foreach(reflection.Object obj in schema.objects)
+            foreach (reflection.Object obj in schema.objects)
             {
-                if(obj.declaration_file != "//" + declarationFile.Name)
+                if (obj.declaration_file != $"//{declarationFile.Name}")
                 {
                     continue;
                 }
 
-                if(!obj.is_struct || !obj.HasAttribute("fs_valueStruct"))
+                if (obj.IsReferenceType())
                 {
                     code += ReferenceTypeCodeWriter.WriteCode(schema, obj);
                     code += ReferenceTypeListCodeWriter.WriteCode(schema, obj);
@@ -46,14 +46,14 @@ namespace FlatSharpDelta.Compiler
                 }
             }
 
-            foreach(reflection.Enum _enum in schema.enums)
+            foreach (reflection.Enum _enum in schema.enums)
             {
-                if(_enum.declaration_file != "//" + declarationFile.Name)
+                if (_enum.declaration_file != $"//{declarationFile.Name}")
                 {
                     continue;
                 }
 
-                if(_enum.is_union)
+                if (_enum.IsUnion())
                 {
                     code += UnionCodeWriter.WriteCode(schema, _enum);
                     code += UnionListCodeWriter.WriteCode(schema, _enum);

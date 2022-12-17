@@ -6,9 +6,11 @@ using reflection;
 
 namespace FlatSharpDelta.Compiler
 {
-    static class PredefinedTypeFactory
+    static class BuiltInTypeFactory
     {
-        public static Schema GetPredefinedTypesSchema()
+        public static string BuiltInTypesBfbsFileName = "FlatSharpDelta.BuiltInTypes.bfbs";
+
+        public static Schema GetBuiltInTypesSchema()
         {
             return new Schema
             {
@@ -32,7 +34,7 @@ namespace FlatSharpDelta.Compiler
                     new EnumVal { name = "Clear",   value = 5 }
                 },
                 underlying_type = new reflection.Type { base_type = BaseType.UByte },
-                declaration_file = "//FlatSharpDelta.PredefinedTypes.bfbs"
+                declaration_file = $"//{BuiltInTypesBfbsFileName}"
             };
         }
 
@@ -46,7 +48,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.BoolListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.Bool),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -55,7 +57,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.ByteListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.Byte),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -64,7 +66,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.UByteListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.UByte),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -73,7 +75,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.ShortListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.Short),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -82,7 +84,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.UShortListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.UShort),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -91,7 +93,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.IntListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.Int),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -100,7 +102,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.UIntListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.UInt),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -109,7 +111,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.FloatListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.Float),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -118,7 +120,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.LongListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.Long),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -127,7 +129,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.ULongListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.ULong),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -136,7 +138,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.DoubleListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.Double),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 },
                 {
@@ -145,7 +147,7 @@ namespace FlatSharpDelta.Compiler
                     {
                         name = "FlatSharpDelta.StringListDelta",
                         fields = GetBuiltInListDeltaTypeFields(listOperationIndex, BaseType.String),
-                        declaration_file =  "//FlatSharpDelta.PredefinedTypes.bfbs"
+                        declaration_file =  $"//{BuiltInTypesBfbsFileName}"
                     }
                 }
             };

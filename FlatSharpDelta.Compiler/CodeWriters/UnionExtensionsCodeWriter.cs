@@ -14,9 +14,9 @@ namespace FlatSharpDelta.Compiler
             string _namespace = union.GetNamespace();
 
             return $@"
-                namespace {_namespace}.SupportingTypes
+                namespace {_namespace}
                 {{
-                    {GetUsings(schema, union)}
+                    {GetUsages(schema, union)}
 
                     public static class {name}Extensions
                     {{
@@ -28,7 +28,7 @@ namespace FlatSharpDelta.Compiler
             ";
         }
 
-        private static string GetUsings(Schema schema, reflection.Enum union)
+        private static string GetUsages(Schema schema, reflection.Enum union)
         {
             string _namespace = union.GetNamespace();
 
@@ -36,15 +36,15 @@ namespace FlatSharpDelta.Compiler
                 .Skip(1)
                 .Select(value => schema.objects[value.union_type.index].GetNamespace())
                 .Distinct()
-                .Aggregate(String.Empty, (usings, objNamespace) =>
+                .Aggregate(String.Empty, (usages, objNamespace) =>
                 {
-                    if(objNamespace == _namespace)
+                    if (objNamespace == _namespace)
                     {
-                        return usings;
+                        return usages;
                     }
 
-                    return usings + $@"
-                        using {objNamespace}.SupportingTypes;
+                    return usages + $@"
+                        using {objNamespace};
                     ";
                 });
         }
@@ -56,11 +56,11 @@ namespace FlatSharpDelta.Compiler
                 case 0: return true;
             ";
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
 
-                if(!CodeWriterUtils.PropertyTypeIsValueStruct(schema, enumVal.union_type))
+                if (!schema.TypeIsValueStruct(enumVal.union_type))
                 {
                     discriminators += $@"
                         case {i}: return self.Base.{enumVal.name} == other.Base.{enumVal.name};

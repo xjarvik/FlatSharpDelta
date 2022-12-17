@@ -16,7 +16,7 @@ namespace FlatSharpDelta.Compiler
             return $@"
                 namespace {_namespace}
                 {{
-                    {GetUsings(union)}
+                    {GetUsages(union)}
 
                     public partial struct {name} : IFlatBufferUnion<{GetIFlatBufferUnionTypes(schema, union)}>
                     {{
@@ -42,7 +42,7 @@ namespace FlatSharpDelta.Compiler
             ";
         }
 
-        private static string GetUsings(reflection.Enum union)
+        private static string GetUsages(reflection.Enum union)
         {
             string _namespace = union.GetNamespace();
 
@@ -55,7 +55,7 @@ namespace FlatSharpDelta.Compiler
         {
             List<string> types = new List<string>();
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
                 types.Add(CodeWriterUtils.GetPropertyType(schema, enumVal.union_type));
@@ -69,7 +69,7 @@ namespace FlatSharpDelta.Compiler
             string name = union.GetNameWithoutNamespace();
             string properties = String.Empty;
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
                 string type = CodeWriterUtils.GetPropertyType(schema, enumVal.union_type, false);
@@ -95,7 +95,7 @@ namespace FlatSharpDelta.Compiler
         {
             string kinds = String.Empty;
 
-            for(int i = 0; i < union.values.Count; i++)
+            for (int i = 0; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
 
@@ -117,7 +117,7 @@ namespace FlatSharpDelta.Compiler
             string name = union.GetNameWithoutNamespace();
             string constructors = String.Empty;
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
                 string type = CodeWriterUtils.GetPropertyType(schema, enumVal.union_type, false);
@@ -138,7 +138,7 @@ namespace FlatSharpDelta.Compiler
             string name = union.GetNameWithoutNamespace();
             string discriminators = String.Empty;
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
                 string type = CodeWriterUtils.GetPropertyType(schema, enumVal.union_type, false);
@@ -169,13 +169,13 @@ namespace FlatSharpDelta.Compiler
             string name = union.GetNameWithoutNamespace();
             string discriminators = String.Empty;
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
                 string deltaType = CodeWriterUtils.GetPropertyDeltaType(schema, enumVal.union_type);
                 bool isValueStruct = CodeWriterUtils.PropertyTypeIsValueStruct(schema, enumVal.union_type);
 
-                if(isValueStruct)
+                if (isValueStruct)
                 {
                     continue;
                 }
@@ -208,13 +208,13 @@ namespace FlatSharpDelta.Compiler
             string discriminators = String.Empty;
             int offset = 0;
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
                 bool isValueStruct = CodeWriterUtils.PropertyTypeIsValueStruct(schema, enumVal.union_type);
                 int index = i + offset;
 
-                if(isValueStruct)
+                if (isValueStruct)
                 {
                     offset--;
                     continue;
@@ -255,12 +255,12 @@ namespace FlatSharpDelta.Compiler
             string name = union.GetNameWithoutNamespace();
             string discriminators = String.Empty;
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
                 bool isValueStruct = CodeWriterUtils.PropertyTypeIsValueStruct(schema, enumVal.union_type);
 
-                if(isValueStruct)
+                if (isValueStruct)
                 {
                     continue;
                 }
@@ -291,13 +291,13 @@ namespace FlatSharpDelta.Compiler
         {
             string tryGets = String.Empty;
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
                 bool isValueStruct = CodeWriterUtils.PropertyTypeIsValueStruct(schema, enumVal.union_type);
                 string type = CodeWriterUtils.GetPropertyType(schema, enumVal.union_type, !isValueStruct);
 
-                if(isValueStruct)
+                if (isValueStruct)
                 {
                     tryGets += $@"
                         public bool TryGet(out {type} value) => Base.TryGet(out value);
@@ -333,7 +333,7 @@ namespace FlatSharpDelta.Compiler
             string switch3Discriminators = String.Empty;
             string switch4Discriminators = String.Empty;
 
-            for(int i = 1; i < union.values.Count; i++)
+            for (int i = 1; i < union.values.Count; i++)
             {
                 EnumVal enumVal = union.values[i];
                 string type = CodeWriterUtils.GetPropertyType(schema, enumVal.union_type, false);

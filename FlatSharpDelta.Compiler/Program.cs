@@ -203,8 +203,8 @@ namespace FlatSharpDelta.Compiler
                     // input file in which the object is declared.
                     schemaWithDeltaTypes.ReplaceMatchingDeclarationFiles
                     (
-                        "//" + inputFile.Name,
-                        "//" + Path.GetFileNameWithoutExtension(inputFile.Name) + ".bfbs"
+                        $"//{inputFile.Name}",
+                        $"//{Path.GetFileNameWithoutExtension(inputFile.Name)}.bfbs"
                     );
 
                     byte[] schemaWithDeltaTypesBfbs = new byte[Schema.Serializer.GetMaxSize(schemaWithDeltaTypes)];
@@ -215,29 +215,11 @@ namespace FlatSharpDelta.Compiler
                     GenerateFlatSharpDeltaCode(originalSchema, inputFile, startInfo.OutputDirectory); // can run in parallel (await?)
                 });
 
-                /*Parallel.ForEach(namespaces, _namespace =>
-                {
-                    string fileName = _namespace.Replace('.', '_') + "_PredefinedTypes.bfbs";
-                    FileInfo bfbsFile = new FileInfo(Path.Combine(tempDir.FullName, fileName));
-                    Schema predefinedTypesSchema = PredefinedTypeFactory.GetPredefinedTypesSchema(_namespace, "//" + fileName);
-
-                    byte[] predefinedTypesSchemaBfbs = new byte[Schema.Serializer.GetMaxSize(predefinedTypesSchema)];
-                    Schema.Serializer.Write(predefinedTypesSchemaBfbs, predefinedTypesSchema);
-                    File.WriteAllBytes(bfbsFile.FullName, predefinedTypesSchemaBfbs);
-
-                    GenerateFlatSharpCode(startInfo.BaseCompilerFile, bfbsFile, startInfo.OutputDirectory);
-
-                    string primitiveListTypesCode = CSharpSyntaxTree.ParseText(PrimitiveListTypesCodeWriter.WriteCode(_namespace))
-                        .GetRoot().NormalizeWhitespace().ToFullString();
-
-                    string codeFilePath = Path.Combine
-                    (
-                        startInfo.OutputDirectory.FullName,
-                        _namespace.Replace('.', '_') + "_PredefinedTypes.flatsharpdelta.generated.cs"
-                    );
-
-                    File.WriteAllText(codeFilePath, primitiveListTypesCode);
-                });*/
+                Schema builtInTypesSchema = BuiltInTypeFactory.GetBuiltInTypesSchema();
+                byte[] builtInTypesSchemaBfbs = new byte[Schema.Serializer.GetMaxSize(builtInTypesSchema)];
+                Schema.Serializer.Write(builtInTypesSchemaBfbs, builtInTypesSchema);
+                string builtInTypesSchemaFilePath = Path.Combine(tempDirPath, BuiltInTypeFactory.BuiltInTypesBfbsFileName);
+                File.WriteAllBytes(builtInTypesSchemaFilePath, builtInTypesSchemaBfbs);
             }
             finally
             {
@@ -312,7 +294,7 @@ namespace FlatSharpDelta.Compiler
             string codeFilePath = Path.Combine
             (
                 outputDirectory.FullName,
-                Path.GetFileName(declarationFile.Name) + ".flatsharpdelta.generated.cs"
+                $"{Path.GetFileName(declarationFile.Name)}.flatsharpdelta.generated.cs"
             );
 
             File.WriteAllText(codeFilePath, code);

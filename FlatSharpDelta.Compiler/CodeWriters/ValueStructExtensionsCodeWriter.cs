@@ -14,9 +14,9 @@ namespace FlatSharpDelta.Compiler
             string _namespace = obj.GetNamespace();
 
             return $@"
-                namespace {_namespace}.SupportingTypes
+                namespace {_namespace}
                 {{
-                    {GetUsings(schema, obj)}
+                    {GetUsages(schema, obj)}
 
                     public static class {name}Extensions
                     {{
@@ -28,15 +28,14 @@ namespace FlatSharpDelta.Compiler
             ";
         }
 
-        private static string GetUsings(Schema schema, reflection.Object obj)
+        private static string GetUsages(Schema schema, reflection.Object obj)
         {
             string _namespace = obj.GetNamespace();
 
             return obj.fields
                 .Select(field =>
                 {
-                    if(CodeWriterUtils.PropertyTypeIsValueStruct(schema, field.type)
-                    || (field.type.base_type == BaseType.Array && CodeWriterUtils.PropertyListTypeIsValueStruct(schema, field.type)))
+                    if (schema.TypeIsValueStruct(field.type) || schema.TypeIsValueStructArray(field.type))
                     {
                         return schema.objects[field.type.index].GetNamespace();
                     }
@@ -45,15 +44,15 @@ namespace FlatSharpDelta.Compiler
                 })
                 .Distinct()
                 .Where(objNamespace => !String.IsNullOrEmpty(objNamespace))
-                .Aggregate(String.Empty, (usings, objNamespace) =>
+                .Aggregate(String.Empty, (usages, objNamespace) =>
                 {
-                    if(objNamespace == _namespace)
+                    if (objNamespace == _namespace)
                     {
-                        return usings;
+                        return usages;
                     }
 
-                    return usings + $@"
-                        using {objNamespace}.SupportingTypes;
+                    return usages + $@"
+                        using {objNamespace};
                     ";
                 });
         }
@@ -65,17 +64,17 @@ namespace FlatSharpDelta.Compiler
 
             obj.ForEachFieldExceptUType(field =>
             {
-                if(CodeWriterUtils.PropertyTypeIsValueStruct(schema, field.type))
+                if (schema.TypeIsValueStruct(field.type))
                 {
                     comparisons.Add($"self.{field.name}.IsEqualTo(other.{field.name})");
                 }
-                else if(field.type.base_type == BaseType.Array)
+                else if (field.type.base_type == BaseType.Array)
                 {
-                    bool isValueStructArray = CodeWriterUtils.PropertyListTypeIsValueStruct(schema, field.type);
+                    bool isValueStructArray = schema.TypeIsValueStructArray(field.type);
 
-                    for(int i = 0; i < field.type.fixed_length; i++)
+                    for (int i = 0; i < field.type.fixed_length; i++)
                     {
-                        if(!isValueStructArray)
+                        if (!isValueStructArray)
                         {
                             comparisons.Add($"self.{field.name}({i}) == other.{field.name}({i})");
                         }
