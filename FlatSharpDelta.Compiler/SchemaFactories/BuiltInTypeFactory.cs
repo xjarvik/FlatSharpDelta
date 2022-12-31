@@ -10,15 +10,6 @@ namespace FlatSharpDelta.Compiler
     {
         public static string BuiltInTypesBfbsFileName = "FlatSharpDelta.BuiltInTypes.bfbs";
 
-        public static Schema GetBuiltInTypesSchema()
-        {
-            return new Schema
-            {
-                objects = GetBuiltInListDeltaTypes(0).Values.ToList(),
-                enums = new List<reflection.Enum> { GetListOperation() },
-            };
-        }
-
         public static reflection.Enum GetListOperation()
         {
             return new reflection.Enum

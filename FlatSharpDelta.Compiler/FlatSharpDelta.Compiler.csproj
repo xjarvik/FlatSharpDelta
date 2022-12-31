@@ -22,12 +22,16 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
-    <PackageReference Include="FlatSharp.Compiler" Version="6.3.1">
+    <PackageReference Include="FlatSharp.Compiler" Version="7.0.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="FlatSharp.Runtime" Version="6.3.1" />
+    <PackageReference Include="FlatSharp.Runtime" Version="7.0.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0-2.final" />
   </ItemGroup>
+  
+  <PropertyGroup>
+    <FlatSharpNameNormalization>false</FlatSharpNameNormalization>
+  </PropertyGroup>
 
 </Project>

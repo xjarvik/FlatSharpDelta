@@ -35,8 +35,14 @@ namespace FlatSharpDelta.Compiler
                     field.optional = true;
                 }
 
+                if (field.type.base_type == BaseType.Vector)
+                {
+                    field.SetAttribute("fs_vector", "IReadOnlyList");
+                }
+
                 field.required = false;
                 field.RemoveAttribute("required");
+                field.SetAttribute("fs_setter", "Protected");
 
                 AddDeltaFieldsForField(context, deltaObj, field);
             }

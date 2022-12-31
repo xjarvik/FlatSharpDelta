@@ -166,18 +166,7 @@ namespace FlatSharpDelta.Compiler
                     return 0;
                 }
 
-                if (schema.TypeIsScalarList(field.type)
-                || schema.TypeIsStringList(field.type)
-                || schema.TypeIsReferenceType(field.type)
-                || schema.TypeIsReferenceTypeList(field.type)
-                || schema.TypeIsValueStructList(field.type)
-                || schema.TypeIsEnumList(field.type)
-                || schema.TypeIsUnion(field.type)
-                || schema.TypeIsUnionList(field.type))
-                {
-                    return 2;
-                }
-                else if (schema.TypeIsScalarArray(field.type)
+                if (schema.TypeIsScalarArray(field.type)
                 || schema.TypeIsValueStructArray(field.type)
                 || schema.TypeIsEnumArray(field.type))
                 {
@@ -187,9 +176,25 @@ namespace FlatSharpDelta.Compiler
                 {
                     return field.type.fixed_length * 2;
                 }
+                else if (schema.TypeHasDeltaType(field.type))
+                {
+                    return 2;
+                }
 
                 return 1;
             });
+        }
+
+        public static bool TypeHasDeltaType(this Schema schema, reflection.Type type)
+        {
+            return schema.TypeIsScalarList(type)
+                || schema.TypeIsStringList(type)
+                || schema.TypeIsReferenceType(type)
+                || schema.TypeIsReferenceTypeList(type)
+                || schema.TypeIsValueStructList(type)
+                || schema.TypeIsEnumList(type)
+                || schema.TypeIsUnion(type)
+                || schema.TypeIsUnionList(type);
         }
 
         public static string GetNameOfObjectWithIndex(this Schema schema, int index) => schema.objects[index].name;
@@ -217,6 +222,95 @@ namespace FlatSharpDelta.Compiler
                 index = schema.enums.IndexOf(_enum)
             };
         }
+
+        public static string GetCSharpType(this Schema schema, reflection.Type type, bool optional = false)
+        {
+            string csharpType = String.Empty;
+
+            if (schema.TypeIsScalar(type))
+            {
+                csharpType = GetCSharpTypeFromScalarBaseType(type.base_type);
+            }
+            else if (schema.TypeIsString(type))
+            {
+                csharpType = "System.String?";
+            }
+            else if (schema.TypeIsReferenceType(type) || schema.TypeIsValueStruct(type))
+            {
+                csharpType = schema.GetNameOfObjectWithIndex(type.index) + (schema.TypeIsReferenceType(type) ? "?" : String.Empty);
+            }
+            else if (schema.TypeIsEnum(type) || schema.TypeIsUnion(type))
+            {
+                csharpType = schema.GetNameOfEnumWithIndex(type.index);
+            }
+            else if (schema.TypeIsScalarList(type) || schema.TypeIsStringList(type))
+            {
+                csharpType = "FlatSharpDelta." + type.element.ToString() + "List?";
+            }
+            else if (schema.TypeIsReferenceTypeList(type) || schema.TypeIsValueStructList(type))
+            {
+                csharpType = schema.GetNameOfObjectWithIndex(type.index) + "List?";
+            }
+            else if (schema.TypeIsEnumList(type) || schema.TypeIsUnionList(type))
+            {
+                csharpType = schema.GetNameOfEnumWithIndex(type.index) + "List?";
+            }
+
+            if (optional && !csharpType.EndsWith('?'))
+            {
+                csharpType += "?";
+            }
+
+            return csharpType;
+        }
+
+        private static string GetCSharpTypeFromScalarBaseType(BaseType baseType)
+        {
+            switch (baseType)
+            {
+                case BaseType.Bool: return "System.Boolean";
+                case BaseType.Byte: return "System.SByte";
+                case BaseType.UByte: return "System.Byte";
+                case BaseType.Short: return "System.Int16";
+                case BaseType.UShort: return "System.UInt16";
+                case BaseType.Int: return "System.Int32";
+                case BaseType.UInt: return "System.UInt32";
+                case BaseType.Float: return "System.Single";
+                case BaseType.Long: return "System.Int64";
+                case BaseType.ULong: return "System.UInt64";
+                case BaseType.Double: return "System.Double";
+
+                default: return String.Empty;
+            }
+        }
+
+        public static string GetCSharpDeltaType(this Schema schema, reflection.Type type)
+        {
+            string csharpDeltaType = String.Empty;
+
+            if (schema.TypeIsReferenceType(type))
+            {
+                csharpDeltaType = schema.GetNameOfObjectWithIndex(type.index) + "Delta?";
+            }
+            else if (schema.TypeIsUnion(type))
+            {
+                csharpDeltaType = schema.GetNameOfEnumWithIndex(type.index) + "Delta?";
+            }
+            else if (schema.TypeIsScalarList(type) || schema.TypeIsStringList(type))
+            {
+                csharpDeltaType = $"IReadOnlyList<{type.element.ToString()}ListDelta>?";
+            }
+            else if (schema.TypeIsReferenceTypeList(type) || schema.TypeIsValueStructList(type))
+            {
+                csharpDeltaType = $"IReadOnlyList<{schema.GetNameOfObjectWithIndex(type.index)}ListDelta>?";
+            }
+            else if (schema.TypeIsEnumList(type) || schema.TypeIsUnionList(type))
+            {
+                csharpDeltaType = $"IReadOnlyList<{schema.GetNameOfEnumWithIndex(type.index)}ListDelta>?";
+            }
+
+            return csharpDeltaType;
+        }
     }
 
     static class ObjectExtensions
@@ -232,17 +326,9 @@ namespace FlatSharpDelta.Compiler
             }
         }
 
-        public static bool IsReferenceType(this reflection.Object obj)
-        {
-            KeyValue attribute = obj.GetAttribute("fs_valueStruct");
-            return attribute == null || (attribute.value == "false" && obj.is_struct);
-        }
+        public static bool IsReferenceType(this reflection.Object obj) => !obj.HasAttribute("fs_valueStruct") || (obj.GetAttribute("fs_valueStruct").value == "false" && obj.is_struct);
 
-        public static bool IsValueStruct(this reflection.Object obj)
-        {
-            KeyValue attribute = obj.GetAttribute("fs_valueStruct");
-            return attribute != null && attribute.value != "false" && obj.is_struct;
-        }
+        public static bool IsValueStruct(this reflection.Object obj) => obj.HasAttribute("fs_valueStruct") && obj.GetAttribute("fs_valueStruct").value != "false" && obj.is_struct;
     }
 
     static class EnumExtensions
@@ -253,5 +339,14 @@ namespace FlatSharpDelta.Compiler
     static class TypeExtensions
     {
         public static BaseType GetBaseTypeOrElement(this reflection.Type type) => type.element == BaseType.None ? type.base_type : type.element;
+
+        public static reflection.Type ToElementAsBaseType(this reflection.Type type)
+        {
+            return new reflection.Type
+            {
+                base_type = type.element,
+                index = type.index
+            };
+        }
     }
 }

@@ -43,9 +43,7 @@ namespace FlatSharpDelta.Compiler
                         return usages;
                     }
 
-                    return usages + $@"
-                        using {objNamespace};
-                    ";
+                    return usages + $"using {objNamespace};";
                 });
         }
 
@@ -62,15 +60,11 @@ namespace FlatSharpDelta.Compiler
 
                 if (!schema.TypeIsValueStruct(enumVal.union_type))
                 {
-                    discriminators += $@"
-                        case {i}: return self.Base.{enumVal.name} == other.Base.{enumVal.name};
-                    ";
+                    discriminators += $"case {i}: return self.{enumVal.name} == other.{enumVal.name};";
                 }
                 else
                 {
-                    discriminators += $@"
-                        case {i}: return self.{enumVal.name}.IsEqualTo(other.{enumVal.name});
-                    ";
+                    discriminators += $"case {i}: return self.{enumVal.name}.IsEqualTo(other.{enumVal.name});";
                 }
             }
 

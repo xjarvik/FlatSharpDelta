@@ -138,6 +138,8 @@ namespace FlatSharpDelta.Compiler
 
                         public static TList AsImmutable(IReadOnlyList<T> list) => new ImmutableTList(list);
 
+                        public static TList AsImmutable(IList<T> list) => new ImmutableTList(list);
+
                         public static TList AsImmutable(TList list) => new ImmutableTList(list);
 
                         public virtual void Add(T item)
@@ -821,9 +823,23 @@ namespace FlatSharpDelta.Compiler
 
                         private class ImmutableTList : TList
                         {{
-                            private IReadOnlyList<T> list;
+                            private IReadOnlyList<T> iReadOnlyList;
+                            private IList<T> iList;
                             private TList tList;
-                            public override int Count {{ get => list.Count; }}
+                            public override int Count
+                            {{
+                                get
+                                {{
+                                    if (iReadOnlyList != null)
+                                    {{
+                                        return iReadOnlyList.Count;
+                                    }}
+                                    else
+                                    {{
+                                        return iList.Count;
+                                    }}
+                                }}
+                            }}
                             public override bool IsReadOnly {{ get => true; }}
 
                             public override int Capacity
@@ -841,18 +857,34 @@ namespace FlatSharpDelta.Compiler
 
                             public override T this[int index]
                             {{
-                                get => list[index];
+                                get
+                                {{
+                                    if (iReadOnlyList != null)
+                                    {{
+                                        return iReadOnlyList[index];
+                                    }}
+                                    else
+                                    {{
+                                        return iList[index];
+                                    }}
+                                }}
                                 set => throw new NotMutableException();
                             }}
 
                             public ImmutableTList(IReadOnlyList<T> list) : base(byte.MinValue)
                             {{
-                                this.list = list;
+                                this.iReadOnlyList = list;
+                            }}
+
+                            public ImmutableTList(IList<T> list) : base(byte.MinValue)
+                            {{
+                                this.iList = list;
                             }}
 
                             public ImmutableTList(TList list) : base(byte.MinValue)
                             {{
-                                this.list = list;
+                                this.iReadOnlyList = list;
+                                this.iList = list;
                                 this.tList = list;
                             }}
 
@@ -870,27 +902,62 @@ namespace FlatSharpDelta.Compiler
                                 {{
                                     throw new ArgumentOutOfRangeException(""The arrayIndex is outside the array"");
                                 }}
-                                if (list.Count > array.Length - arrayIndex)
+                                if (Count > array.Length - arrayIndex)
                                 {{
                                     throw new ArgumentException(""The array does not have enough space"");
                                 }}
-                                for (int i = 0; i < list.Count; i++)
+                                if (iReadOnlyList != null)
                                 {{
-                                    array[arrayIndex + i] = list[i];
+                                    for (int i = 0; i < Count; i++)
+                                    {{
+                                        array[arrayIndex + i] = iReadOnlyList[i];
+                                    }}
+                                }}
+                                else
+                                {{
+                                    for (int i = 0; i < Count; i++)
+                                    {{
+                                        array[arrayIndex + i] = iList[i];
+                                    }}
+                                }}
+
+                            }}
+
+                            public override IEnumerator<T> GetEnumerator()
+                            {{
+                                if (iReadOnlyList != null)
+                                {{
+                                    return iReadOnlyList.GetEnumerator();
+                                }}
+                                else
+                                {{
+                                    return iList.GetEnumerator();
                                 }}
                             }}
 
-                            public override IEnumerator<T> GetEnumerator() => list.GetEnumerator();
-
                             public override int IndexOf(T item)
                             {{
-                                for (int i = 0; i < list.Count; i++)
+                                if (iReadOnlyList != null)
                                 {{
-                                    if (list[i].IsEqualTo(item))
+                                    for (int i = 0; i < Count; i++)
                                     {{
-                                        return i;
+                                        if (iReadOnlyList[i].IsEqualTo(item))
+                                        {{
+                                            return i;
+                                        }}
                                     }}
                                 }}
+                                else
+                                {{
+                                    for (int i = 0; i < Count; i++)
+                                    {{
+                                        if (iList[i].IsEqualTo(item))
+                                        {{
+                                            return i;
+                                        }}
+                                    }}
+                                }}
+
                                 return -1;
                             }}
 
