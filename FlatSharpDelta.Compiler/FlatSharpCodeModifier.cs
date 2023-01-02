@@ -21,13 +21,16 @@ namespace FlatSharpDelta.Compiler
             public static IList<string> AllWithoutEnumName => All.Select(o => o.Substring(o.LastIndexOf('.') + 1)).ToList();
         }
 
-        public static string ModifyGeneratedCode(string generatedCode, ICollection<Schema> schemas)
+        public static string ModifyGeneratedCode(string generatedCode, IDictionary<FileInfo, Schema> schemas)
         {
-            foreach (Schema schema in schemas)
+            foreach (KeyValuePair<FileInfo, Schema> kvp in schemas)
             {
+                FileInfo declarationFile = kvp.Key;
+                Schema schema = kvp.Value;
+
                 foreach (reflection.Object obj in schema.objects)
                 {
-                    if (obj.IsReferenceType())
+                    if (obj.declaration_file == $"//{declarationFile.Name}" && obj.IsReferenceType())
                     {
                         generatedCode = ModifyListTypesInReferenceType(generatedCode, schema, obj);
                     }

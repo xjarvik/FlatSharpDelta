@@ -10,7 +10,8 @@ namespace FlatSharpDelta.Tests
     {
         public int Count { get => (int)GetProperty("Count"); }
         public bool IsReadOnly { get => (bool)GetProperty("IsReadOnly"); }
-        GeneratedType IReadOnlyList<GeneratedType>.this[int index] {
+        GeneratedType IReadOnlyList<GeneratedType>.this[int index]
+        {
             get => this[index];
         }
 
@@ -34,6 +35,20 @@ namespace FlatSharpDelta.Tests
 
         public GeneratedListType(Assembly assembly, string name, GeneratedBaseType copy) : base(assembly, name, copy.NativeObject)
         {
+        }
+
+        public static GeneratedListType ShallowCopy(Assembly assembly, string name, GeneratedListType list)
+        {
+            Type listType = list.NativeObject.GetType();
+
+            object shallowCopy = listType.InvokeMember("ShallowCopy",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                null,
+                new object[] { list.NativeObject }
+            );
+
+            return new GeneratedListType(shallowCopy);
         }
 
         public void Add(GeneratedType item)
@@ -86,7 +101,8 @@ namespace FlatSharpDelta.Tests
             );
         }
 
-        public void CopyTo(GeneratedType[] array, int arrayIndex){
+        public void CopyTo(GeneratedType[] array, int arrayIndex)
+        {
             type.InvokeMember("CopyTo",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
@@ -95,7 +111,8 @@ namespace FlatSharpDelta.Tests
             );
         }
 
-        public void CopyTo(object[] array, int arrayIndex){
+        public void CopyTo(object[] array, int arrayIndex)
+        {
             type.InvokeMember("CopyTo",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
@@ -108,13 +125,16 @@ namespace FlatSharpDelta.Tests
 
         IEnumerator<GeneratedType> IEnumerable<GeneratedType>.GetEnumerator() => GetEnumerator();
 
-        public IEnumerator<GeneratedType> GetEnumerator(){
-            for(int i = 0; i < Count; i++){
+        public IEnumerator<GeneratedType> GetEnumerator()
+        {
+            for (int i = 0; i < Count; i++)
+            {
                 yield return GetIndexerProperty<GeneratedType>(i);
             }
         }
 
-        public int IndexOf(GeneratedType item){
+        public int IndexOf(GeneratedType item)
+        {
             return (int)type.InvokeMember("IndexOf",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
@@ -123,7 +143,8 @@ namespace FlatSharpDelta.Tests
             );
         }
 
-        public int IndexOf(object item){
+        public int IndexOf(object item)
+        {
             return (int)type.InvokeMember("IndexOf",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
@@ -132,7 +153,8 @@ namespace FlatSharpDelta.Tests
             );
         }
 
-        public void Insert(int index, GeneratedType item){
+        public void Insert(int index, GeneratedType item)
+        {
             type.InvokeMember("Insert",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
@@ -141,7 +163,8 @@ namespace FlatSharpDelta.Tests
             );
         }
 
-        public void Insert(int index, object item){
+        public void Insert(int index, object item)
+        {
             type.InvokeMember("Insert",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
@@ -150,7 +173,8 @@ namespace FlatSharpDelta.Tests
             );
         }
 
-        public void Move(int currentIndex, int newIndex){
+        public void Move(int currentIndex, int newIndex)
+        {
             type.InvokeMember("Move",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
@@ -159,7 +183,8 @@ namespace FlatSharpDelta.Tests
             );
         }
 
-        public bool Remove(GeneratedType item){
+        public bool Remove(GeneratedType item)
+        {
             return (bool)type.InvokeMember("Remove",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
@@ -168,7 +193,8 @@ namespace FlatSharpDelta.Tests
             );
         }
 
-        public bool Remove(object item){
+        public bool Remove(object item)
+        {
             return (bool)type.InvokeMember("Remove",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
@@ -177,7 +203,8 @@ namespace FlatSharpDelta.Tests
             );
         }
 
-        public void RemoveAt(int index){
+        public void RemoveAt(int index)
+        {
             type.InvokeMember("RemoveAt",
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,

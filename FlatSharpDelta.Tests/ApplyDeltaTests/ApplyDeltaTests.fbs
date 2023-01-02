@@ -11,7 +11,7 @@ struct Foo01 (fs_valueStruct) {
     Abc01:int;
 }
 
-enum Foo02 : ubyte {
+enum Foo02 : byte {
     Val1 = 1,
     Val2 = 2,
     Val3 = 3
@@ -35,7 +35,7 @@ struct Foo3 (fs_valueStruct) {
     IntArray:[int:5];
 }
 
-enum Foo4 : ubyte {
+enum Foo4 : byte {
     Val1 = 1,
     Val2 = 2,
     Val3 = 3

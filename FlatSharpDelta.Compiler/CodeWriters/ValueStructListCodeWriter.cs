@@ -113,6 +113,17 @@ namespace FlatSharpDelta.Compiler
                                 listItems.Add(new ListItem(new object(), list[i], null));
                             }}
                         }}
+
+                        public {name}List(TList list)
+                        {{
+                            Initialize();
+                            int count = list.Count;
+                            listItems = new List<ListItem>(count);
+                            for (int i = 0; i < count; i++)
+                            {{
+                                listItems.Add(new ListItem(new object(), list[i], null));
+                            }}
+                        }}
                 #pragma warning restore CS8618
                         public static TList AsImmutable(IReadOnlyList<T> list) => new ImmutableTList(list);
 

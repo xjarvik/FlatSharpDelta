@@ -39,7 +39,7 @@ namespace FlatSharpDelta.Compiler
             {
                 EnumVal enumVal = union.values[i];
 
-                if (schema.TypeIsValueStruct(enumVal.union_type))
+                if (schema.TypeIsValueStruct(enumVal.union_type) || schema.TypeIsString(enumVal.union_type))
                 {
                     discriminators += $"case {i}: return new {name}(source.{enumVal.name});";
                 }
@@ -52,10 +52,13 @@ namespace FlatSharpDelta.Compiler
             return $@"
                 public static {name} DeepCopy({name} source)
                 {{
+                    {(!String.IsNullOrEmpty(discriminators) ? $@"
                     switch (source.Discriminator)
                     {{
                         {discriminators}
                     }}
+                    " :
+                    String.Empty)}
 
                     return new {name}();
                 }}
@@ -71,7 +74,7 @@ namespace FlatSharpDelta.Compiler
             {
                 EnumVal enumVal = union.values[i];
 
-                if (schema.TypeIsValueStruct(enumVal.union_type))
+                if (schema.TypeIsValueStruct(enumVal.union_type) || schema.TypeIsString(enumVal.union_type))
                 {
                     continue;
                 }
@@ -88,10 +91,13 @@ namespace FlatSharpDelta.Compiler
             return $@"
                 public {name}Delta? GetDelta()
                 {{
+                    {(!String.IsNullOrEmpty(discriminators) ? $@"
                     switch (Discriminator)
                     {{
                         {discriminators}
                     }}
+                    " :
+                    String.Empty)}
 
                     return null;
                 }}
@@ -108,7 +114,7 @@ namespace FlatSharpDelta.Compiler
             {
                 EnumVal enumVal = union.values[i];
 
-                if (schema.TypeIsValueStruct(enumVal.union_type))
+                if (schema.TypeIsValueStruct(enumVal.union_type) || schema.TypeIsString(enumVal.union_type))
                 {
                     offset--;
                     continue;
@@ -152,7 +158,7 @@ namespace FlatSharpDelta.Compiler
             {
                 EnumVal enumVal = union.values[i];
 
-                if (schema.TypeIsValueStruct(enumVal.union_type))
+                if (schema.TypeIsValueStruct(enumVal.union_type) || schema.TypeIsString(enumVal.union_type))
                 {
                     continue;
                 }

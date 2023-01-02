@@ -271,7 +271,7 @@ namespace FlatSharpDelta.Compiler
 
                 GenerateFlatSharpCode(startInfo.BaseCompilerFile, bfbsFiles, tempDir);
                 string generatedFlatSharpCode = File.ReadAllText(Path.Combine(tempDirPath, FlatSharpGeneratedFileName));
-                string modifiedFlatSharpCode = FlatSharpCodeModifier.ModifyGeneratedCode(generatedFlatSharpCode, originalSchemas.Values);
+                string modifiedFlatSharpCode = FlatSharpCodeModifier.ModifyGeneratedCode(generatedFlatSharpCode, originalSchemas);
                 File.WriteAllText(Path.Combine(startInfo.OutputDirectory.FullName, ModifiedFlatSharpGeneratedFileName), modifiedFlatSharpCode);
 
                 GenerateFlatSharpDeltaCode(GetSourceHash(startInfo.InputFiles), originalSchemas, startInfo.OutputDirectory);

@@ -14,7 +14,7 @@ struct Foo3 (fs_valueStruct) {
     Abc3:int;
 }
 
-enum Foo4 : ubyte {
+enum Foo4 : byte {
 }
 
 union Foo5 {

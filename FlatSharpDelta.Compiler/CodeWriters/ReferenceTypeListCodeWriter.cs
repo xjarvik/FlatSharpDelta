@@ -114,6 +114,18 @@ namespace FlatSharpDelta.Compiler
                                 listItems.Add(new ListItem(item != null ? new T(item) : null, new LinkedList<LinkedListNode<MutableTListDelta>>()));
                             }}
                         }}
+
+                        public {name}List(TList list)
+                        {{
+                            Initialize();
+                            int count = list.Count;
+                            listItems = new List<ListItem>(count);
+                            for (int i = 0; i < count; i++)
+                            {{
+                                T item = list[i];
+                                listItems.Add(new ListItem(item != null ? new T(item) : null, new LinkedList<LinkedListNode<MutableTListDelta>>()));
+                            }}
+                        }}
                 #pragma warning restore CS8618
                         public static TList ShallowCopy(IReadOnlyList<T> list)
                         {{
@@ -128,6 +140,18 @@ namespace FlatSharpDelta.Compiler
                         }}
 
                         public static TList ShallowCopy(IList<T> list)
+                        {{
+                            int count = list.Count;
+                            TList _this = new TList(count);
+                            for (int i = 0; i < count; i++)
+                            {{
+                                _this.listItems.Add(new ListItem(list[i], new LinkedList<LinkedListNode<MutableTListDelta>>()));
+                            }}
+
+                            return _this;
+                        }}
+
+                        public static TList ShallowCopy(TList list)
                         {{
                             int count = list.Count;
                             TList _this = new TList(count);

@@ -89,7 +89,7 @@ namespace FlatSharpDelta.Tests
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
                 null,
-                new object[] { serializer, bytes }
+                new object[] { serializer, bytes, null }
             );
             GeneratedType bar2 = new GeneratedType(obj);
 
@@ -179,7 +179,7 @@ namespace FlatSharpDelta.Tests
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
                 null,
-                new object[] { deltaSerializer, bytes }
+                new object[] { deltaSerializer, bytes, null }
             );
             GeneratedType bar2 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
             bar2.ApplyDelta(new GeneratedDeltaType(obj));

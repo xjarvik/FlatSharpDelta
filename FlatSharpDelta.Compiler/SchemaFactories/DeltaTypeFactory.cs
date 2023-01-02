@@ -246,7 +246,7 @@ namespace FlatSharpDelta.Compiler
             {
                 EnumVal enumVal = deltaEnum.values[i];
 
-                if (schema.TypeIsValueStruct(enumVal.union_type))
+                if (schema.TypeIsValueStruct(enumVal.union_type) || schema.TypeIsString(enumVal.union_type))
                 {
                     deltaEnum.values.RemoveAt(i);
                     i--;

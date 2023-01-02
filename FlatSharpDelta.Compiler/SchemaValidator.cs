@@ -29,7 +29,7 @@ namespace FlatSharpDelta.Compiler
                                 validationErrors.Add($"Error on field {field.name} in {obj.name}: FlatSharpDelta only supports vectors of the IList type.");
                             }
                         }
-                        else if (field.type.element == BaseType.UByte)
+                        else if (field.type.element == BaseType.UByte && field.type.index == -1)
                         {
                             validationErrors.Add($"Error on field {field.name} in {obj.name}: FlatSharpDelta does not support vectors of the Memory type, which is the default for ubyte vectors. Set the fs_vector attribute to IList instead.");
                         }

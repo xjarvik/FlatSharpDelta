@@ -118,5 +118,33 @@ namespace FlatSharpDelta.Tests
             Assert.Single(bar2.GetProperty<GeneratedListType>("Prop12"));
             Assert.Equal(0, bar2.GetProperty<GeneratedListType>("Prop12").GetIndexerProperty<GeneratedType>(0).GetProperty<GeneratedType>("MyFoo3").GetField("Abc3"));
         }
+
+        [Fact]
+        public void CopyConstructorList_CopyPopulatedList_ObjectReferencesNotEqual()
+        {
+            // Arrange
+            GeneratedListType foo1List1 = new GeneratedListType(GeneratedAssembly, "FooBar.Foo1List");
+            foo1List1.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo1"));
+
+            // Act
+            GeneratedListType foo1List2 = new GeneratedListType(GeneratedAssembly, "FooBar.Foo1List", foo1List1);
+
+            // Assert
+            Assert.NotEqual(foo1List1[0], foo1List2[0]);
+        }
+
+        [Fact]
+        public void ShallowCopyList_CopyPopulatedList_ObjectReferencesEqual()
+        {
+            // Arrange
+            GeneratedListType foo1List1 = new GeneratedListType(GeneratedAssembly, "FooBar.Foo1List");
+            foo1List1.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo1"));
+
+            // Act
+            GeneratedListType foo1List2 = GeneratedListType.ShallowCopy(GeneratedAssembly, "FooBar.Foo1List", foo1List1);
+
+            // Assert
+            Assert.Equal(foo1List1[0], foo1List2[0]);
+        }
     }
 }

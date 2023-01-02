@@ -28,24 +28,12 @@ namespace FlatSharpDelta.Compiler
             ";
         }
 
-        private static string GetUsages(Schema schema, reflection.Enum union)
-        {
-            string _namespace = union.GetNamespace();
-
-            return union.values
-                .Skip(1)
-                .Select(value => schema.objects[value.union_type.index].GetNamespace())
-                .Distinct()
-                .Aggregate(String.Empty, (usages, objNamespace) =>
-                {
-                    if (objNamespace == _namespace)
-                    {
-                        return usages;
-                    }
-
-                    return usages + $"using {objNamespace};";
-                });
-        }
+        private static string GetUsages(Schema schema, reflection.Enum union) => union.values
+            .Where(value => schema.TypeIsValueStruct(value.union_type))
+            .Select(value => schema.objects[value.union_type.index].GetNamespace())
+            .Where(value => value != union.GetNamespace())
+            .Distinct()
+            .Aggregate(String.Empty, (usages, _namespace) => usages + $"using {_namespace};");
 
         private static string GetIsEqualTo(Schema schema, reflection.Enum union)
         {
