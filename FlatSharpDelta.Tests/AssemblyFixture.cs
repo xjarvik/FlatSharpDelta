@@ -15,6 +15,7 @@ namespace FlatSharpDelta.Tests
         private DirectoryInfo outputDirectory;
         private Assembly generatedAssembly;
         public Assembly GeneratedAssembly { get => generatedAssembly; }
+        public Exception CompilerException { get; private set; }
 
         public AssemblyFixture()
         {
@@ -26,12 +27,29 @@ namespace FlatSharpDelta.Tests
             Directory.CreateDirectory(outputDirectory.FullName);
             ClearOutputDirectory();
 
-            int exitCode = FlatSharpDelta.Compiler.Program.Main(new string[]
+            int exitCode = -1;
+
+            try
             {
-                "-i", inputFiles,
-                "-o", outputDirectory.FullName,
-                "--debug"
-            });
+                exitCode = FlatSharpDelta.Compiler.Program.Main(new string[]
+                {
+                    "-i", inputFiles,
+                    "-o", outputDirectory.FullName,
+                    "--debug"
+                });
+            }
+            catch (Exception exception)
+            {
+                CompilerException = exception;
+
+                if (configuration.CatchCompilerException)
+                {
+                    return;
+                }
+
+                throw;
+            }
+
             Assert.Equal(0, exitCode);
 
             generatedAssembly = GetAssemblyFromOutputDirectory();
@@ -46,7 +64,7 @@ namespace FlatSharpDelta.Tests
         {
             foreach (FileInfo file in outputDirectory.GetFiles())
             {
-                file.Delete(); 
+                file.Delete();
             }
         }
 
@@ -61,9 +79,9 @@ namespace FlatSharpDelta.Tests
                 MetadataReference.CreateFromFile(typeof(LinkedList<>).Assembly.Location),
             };
 
-            foreach(var referencedAssembly in Assembly.GetEntryAssembly().GetReferencedAssemblies())
+            foreach (var referencedAssembly in Assembly.GetEntryAssembly().GetReferencedAssemblies())
             {
-                references.Add(MetadataReference.CreateFromFile(Assembly.Load(referencedAssembly).Location)); 
+                references.Add(MetadataReference.CreateFromFile(Assembly.Load(referencedAssembly).Location));
             }
 
             CSharpCompilation compilation = CSharpCompilation.Create
@@ -74,20 +92,20 @@ namespace FlatSharpDelta.Tests
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
             );
 
-            using(var ms = new MemoryStream())
+            using (var ms = new MemoryStream())
             {
                 EmitResult result = compilation.Emit(ms);
 
-                if(!result.Success)
+                if (!result.Success)
                 {
-                    IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic => 
-                        diagnostic.IsWarningAsError || 
+                    IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
+                        diagnostic.IsWarningAsError ||
                         diagnostic.Severity == DiagnosticSeverity.Error
                     );
 
                     string messages = String.Empty;
 
-                    foreach(Diagnostic diagnostic in failures)
+                    foreach (Diagnostic diagnostic in failures)
                     {
                         messages += diagnostic.Id + " " + diagnostic.GetMessage() + "\n";
                     }

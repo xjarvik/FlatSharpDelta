@@ -1,0 +1,12 @@
+namespace FooBar;
+
+attribute "fs_serializer";
+attribute "fs_vector";
+
+table Bar (fs_serializer) {
+    Prop1:[ubyte];
+    Prop2:[int] (fs_vector:"Memory");
+    Prop3:[ubyte] (fs_vector:"IList");
+}
+
+root_type Bar;

@@ -99,7 +99,10 @@ namespace FlatSharpDelta.Compiler
                 }
 
                 return files.Select(f => new FileInfo(f));
-            }).ToArray();
+            })
+            .GroupBy(f => f.FullName)
+            .Select(f => f.First())
+            .ToArray();
         }
 
         static DirectoryInfo GetOutputDirectory(string output)
@@ -393,8 +396,16 @@ namespace FlatSharpDelta.Compiler
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                os = "macos";
-                name = "flatc";
+                if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64)
+                {
+                    os = "macos_arm";
+                    name = "flatc";
+                }
+                else
+                {
+                    os = "macos_intel";
+                    name = "flatc";
+                }
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {

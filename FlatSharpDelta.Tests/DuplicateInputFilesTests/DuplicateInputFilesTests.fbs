@@ -1,0 +1,9 @@
+namespace FooBar;
+
+attribute "fs_serializer";
+
+table Bar (fs_serializer) {
+    Prop1:int = 100;
+}
+
+root_type Bar;
