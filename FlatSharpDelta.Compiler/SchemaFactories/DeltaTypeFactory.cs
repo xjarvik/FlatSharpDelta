@@ -15,6 +15,8 @@ namespace FlatSharpDelta.Compiler
 
             reflection.Object deltaObj = new reflection.Object(baseObj);
 
+            RemoveUnwantedAttributes(deltaObj);
+
             deltaObj.name = baseObj.name + "Delta";
             deltaObj.is_struct = false;
 
@@ -25,12 +27,14 @@ namespace FlatSharpDelta.Compiler
                     continue;
                 }
 
+                RemoveUnwantedAttributes(field);
+
                 if (field.type.base_type == BaseType.Array)
                 {
                     DecreaseFieldIdsAndOffsets(deltaObj.fields, field.id + 1);
                     deltaObj.fields.Remove(field);
                 }
-                else if (schema.TypeIsReferenceType(field.type) || schema.TypeIsUnion(field.type) || field.type.base_type == BaseType.Vector)
+                else if (schema.TypeIsReferenceType(field.type) || schema.TypeIsValueStruct(field.type) || schema.TypeIsUnion(field.type) || field.type.base_type == BaseType.Vector)
                 {
                     field.optional = true;
                 }
@@ -40,8 +44,6 @@ namespace FlatSharpDelta.Compiler
                     field.SetAttribute("fs_vector", "IReadOnlyList");
                 }
 
-                field.required = false;
-                field.RemoveAttribute("required");
                 field.SetAttribute("fs_setter", "Protected");
 
                 AddDeltaFieldsForField(context, deltaObj, field);
@@ -226,6 +228,19 @@ namespace FlatSharpDelta.Compiler
                 field.id--;
                 field.offset -= 2;
             }
+        }
+
+        private static void RemoveUnwantedAttributes(reflection.Object obj)
+        {
+            obj.RemoveAttribute("fs_defaultCtor");
+        }
+
+        private static void RemoveUnwantedAttributes(Field field)
+        {
+            field.required = false;
+            field.RemoveAttribute("required");
+            field.RemoveAttribute("fs_forceWrite");
+            field.RemoveAttribute("fs_writeThrough");
         }
 
         public static reflection.Enum GetEnumDeltaType(DeltaSchemaFactory.IContext context, reflection.Enum baseEnum)

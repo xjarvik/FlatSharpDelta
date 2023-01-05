@@ -132,6 +132,7 @@ namespace FlatSharpDelta.Compiler
             }
 
             return $@"
+                {(field.optional ? $@"
                 if ({field.name} == null)
                 {{
                     delta.{field.name} = null;
@@ -142,6 +143,8 @@ namespace FlatSharpDelta.Compiler
                     }}
                 }}
                 else if (original.{field.name} == null || {field.name}.Value.Discriminator != original.{field.name}.Value.Discriminator)
+                " :
+                $"if ({field.name}.Discriminator != original.{field.name}.Discriminator)")}
                 {{
                     delta.{field.name} = {field.name};
                     delta.{field.name}Delta = null;
@@ -149,7 +152,7 @@ namespace FlatSharpDelta.Compiler
                 }}
                 else
                 {{
-                    switch({field.name}.Value.Discriminator)
+                    switch({field.name}{(field.optional ? ".Value" : String.Empty)}.Discriminator)
                     {{
                         {discriminators}
                     }}
@@ -205,14 +208,14 @@ namespace FlatSharpDelta.Compiler
 
             if (enumVal != null)
             {
-                nestedObject = $"{schema.GetNameOfObjectWithIndex(enumVal.union_type.index)} nestedObject = {field.name}.Value.{enumVal.name};";
+                nestedObject = $"{schema.GetNameOfObjectWithIndex(enumVal.union_type.index)} nestedObject = {field.name}{(field.optional ? ".Value" : String.Empty)}.{enumVal.name};";
             }
 
             string firstEqualityCheck = String.Empty;
 
             if (enumVal != null)
             {
-                firstEqualityCheck = $"nestedObject != original.{field.name}.Value.{enumVal.name}";
+                firstEqualityCheck = $"nestedObject != original.{field.name}{(field.optional ? ".Value" : String.Empty)}.{enumVal.name}";
             }
             else
             {
@@ -240,7 +243,7 @@ namespace FlatSharpDelta.Compiler
                 }}
                 else if ({secondEqualityCheck})
                 {{
-                    {schema.GetCSharpDeltaType(field.type)} nestedDelta = {field.name}{(enumVal != null ? ".Value" : String.Empty)}.GetDelta();
+                    {schema.GetCSharpDeltaType(field.type)} nestedDelta = {field.name}{(enumVal != null && field.optional ? ".Value" : String.Empty)}.GetDelta();
                     if (nestedDelta != null)
                     {{
                         delta.{field.name}Delta = nestedDelta;
@@ -266,11 +269,11 @@ namespace FlatSharpDelta.Compiler
 
             if (schema.TypeIsString(enumVal.union_type))
             {
-                equalityCheck = $"{field.name}.Value.{enumVal.name} != original.{field.name}.Value.{enumVal.name}";
+                equalityCheck = $"{field.name}{(field.optional ? ".Value" : String.Empty)}.{enumVal.name} != original.{field.name}{(field.optional ? ".Value" : String.Empty)}.{enumVal.name}";
             }
             else
             {
-                equalityCheck = $"!{schema.GetNameOfObjectWithIndex(enumVal.union_type.index)}Extensions.IsEqualTo({field.name}.Value.{enumVal.name}, original.{field.name}.Value.{enumVal.name})";
+                equalityCheck = $"!{schema.GetNameOfObjectWithIndex(enumVal.union_type.index)}Extensions.IsEqualTo({field.name}{(field.optional ? ".Value" : String.Empty)}.{enumVal.name}, original.{field.name}{(field.optional ? ".Value" : String.Empty)}.{enumVal.name})";
             }
 
             return $@"

@@ -62,5 +62,14 @@ namespace FlatSharpDelta.Tests
             // Assert
             Assert.DoesNotMatch(@"Prop3", CompilerException.Message);
         }
+
+        [Fact]
+        public void Compiler_SchemaWithSortedVector_ThrowsException()
+        {
+            // Assert
+            Assert.NotNull(CompilerException);
+            Assert.IsType<FlatSharpDeltaException>(CompilerException);
+            Assert.Matches(@"Error on field Prop4 in FooBar.Bar: FlatSharpDelta does not support sorted vectors.", CompilerException.Message);
+        }
     }
 }

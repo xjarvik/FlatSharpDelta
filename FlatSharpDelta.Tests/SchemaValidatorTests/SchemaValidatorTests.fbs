@@ -2,11 +2,17 @@ namespace FooBar;
 
 attribute "fs_serializer";
 attribute "fs_vector";
+attribute "fs_sortedVector";
+
+table Foo {
+    Abc:int (key);
+}
 
 table Bar (fs_serializer) {
     Prop1:[ubyte];
     Prop2:[int] (fs_vector:"Memory");
     Prop3:[ubyte] (fs_vector:"IList");
+    Prop4:[Foo] (fs_sortedVector);
 }
 
 root_type Bar;

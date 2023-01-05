@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using reflection;
 
 namespace FlatSharpDelta.Compiler
@@ -11,6 +12,7 @@ namespace FlatSharpDelta.Compiler
         {
             string name = union.GetNameWithoutNamespace();
             string _namespace = union.GetNamespace();
+            bool containsReferenceType = union.values.Any(v => schema.TypeIsReferenceType(v.union_type));
 
             return $@"
                 namespace {_namespace}
@@ -368,6 +370,7 @@ namespace FlatSharpDelta.Compiler
                                     break;
                                 }}
                             }}
+                            {(containsReferenceType ? @"
                             if (!ignoreModify)
                             {{
                                 LinkedListNode<LinkedListNode<MutableTListDelta>>? firstNode = listItemDeltas.First;
@@ -401,8 +404,11 @@ namespace FlatSharpDelta.Compiler
                                     }}
                                 }}
                             }}
+                            " :
+                            String.Empty)}
                         }}
 
+                        {(containsReferenceType ? @"
                         private void AddModifyDelta(in ListItem listItem, int index)
                         {{
                             TDelta? itemDelta = listItem.Value.GetDelta();
@@ -433,6 +439,8 @@ namespace FlatSharpDelta.Compiler
                                 listItemDeltasNodePool.Push(node);
                             }}
                         }}
+                        " :
+                        String.Empty)}
 
                         private OptimizationResult OptimizeDelta(LinkedListNode<MutableTListDelta> current, LinkedListNode<MutableTListDelta> next)
                         {{

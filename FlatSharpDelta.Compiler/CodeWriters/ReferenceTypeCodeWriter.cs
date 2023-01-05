@@ -328,7 +328,7 @@ namespace FlatSharpDelta.Compiler
                 }
                 else if (schema.TypeHasDeltaType(field.type))
                 {
-                    calls += $"{field.name}?.UpdateReferenceState();";
+                    calls += $"{field.name}{(schema.TypeIsUnion(field.type) && !field.optional ? String.Empty : "?")}.UpdateReferenceState();";
                 }
             });
 
@@ -385,7 +385,7 @@ namespace FlatSharpDelta.Compiler
                     }
                     else
                     {
-                        csharpType = schema.GetCSharpType(field.type, field.optional);
+                        csharpType = schema.GetCSharpType(field.type, field.optional || schema.TypeIsReferenceType(field.type) || schema.TypeIsValueStruct(field.type) || schema.TypeIsUnion(field.type));
                     }
 
                     properties += $@"

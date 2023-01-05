@@ -33,6 +33,11 @@ namespace FlatSharpDelta.Compiler
                         {
                             validationErrors.Add($"Error on field {field.name} in {obj.name}: FlatSharpDelta does not support vectors of the Memory type, which is the default for ubyte vectors. Set the fs_vector attribute to IList instead.");
                         }
+
+                        if (field.HasAttribute("fs_sortedVector"))
+                        {
+                            validationErrors.Add($"Error on field {field.name} in {obj.name}: FlatSharpDelta does not support sorted vectors.");
+                        }
                     }
                 });
             }

@@ -103,7 +103,7 @@ namespace FlatSharpDelta.Compiler
                 case {field.name}_Index:
                     {{
                         {schema.GetNameOfEnumWithIndex(field.type.index)}? nestedObject = delta.{field.name};
-                        {field.name} = nestedObject != null ? {schema.GetNameOfEnumWithIndex(field.type.index)}.DeepCopy(nestedObject.Value) : null;
+                        {field.name} = nestedObject != null ? {schema.GetNameOfEnumWithIndex(field.type.index)}.DeepCopy(nestedObject.Value) : {(field.optional ? "null" : $"{field.name}")};
                         break;
                     }}
             ";
@@ -114,7 +114,7 @@ namespace FlatSharpDelta.Compiler
             return $@"
                 case {field.name}Delta_Index:
                     {{
-                        {field.name}?.ApplyDelta(delta.{field.name}Delta);
+                        {field.name}{(field.optional ? "?" : String.Empty)}.ApplyDelta(delta.{field.name}Delta);
                         break;
                     }}
             ";
