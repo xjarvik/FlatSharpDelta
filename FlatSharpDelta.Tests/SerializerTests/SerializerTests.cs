@@ -69,29 +69,8 @@ namespace FlatSharpDelta.Tests
             bar1.SetProperty("Prop12", foo5List);
 
             // Act
-            object serializer = bar1.NativeObject.GetType().GetProperty("Serializer").GetValue(null, null);
-            Type serializerType = serializer.GetType();
-            Type extensionSerializerType = typeof(FlatSharp.ISerializerExtensions);
-            int maxSize = (int)serializerType.InvokeMember("GetMaxSize",
-                BindingFlags.Default | BindingFlags.InvokeMethod,
-                null,
-                serializer,
-                new object[] { bar1.NativeObject }
-            );
-            byte[] bytes = new byte[maxSize];
-            extensionSerializerType.InvokeMember("Write",
-                BindingFlags.Default | BindingFlags.InvokeMethod,
-                null,
-                null,
-                new object[] { serializer, bytes, bar1.NativeObject }
-            );
-            object obj = extensionSerializerType.InvokeMember("Parse",
-                BindingFlags.Default | BindingFlags.InvokeMethod,
-                null,
-                null,
-                new object[] { serializer, bytes, null }
-            );
-            GeneratedType bar2 = new GeneratedType(obj);
+            byte[] bytes = GeneratedType.Serialize(bar1);
+            GeneratedType bar2 = GeneratedType.Deserialize<GeneratedType>(GeneratedAssembly, "FooBar.Bar", bytes);
 
             // Assert
             Assert.Equal(200, bar2.GetProperty("Prop1"));
@@ -158,31 +137,9 @@ namespace FlatSharpDelta.Tests
             bar1.SetProperty("Prop12", foo5List);
 
             // Act
-            object delta = bar1.GetDelta().NativeObject;
-            object deltaSerializer = delta.GetType().BaseType.GetProperty("Serializer").GetValue(null, null);
-            Type deltaSerializerType = deltaSerializer.GetType();
-            Type extensionSerializerType = typeof(FlatSharp.ISerializerExtensions);
-            int maxSize = (int)deltaSerializerType.InvokeMember("GetMaxSize",
-                BindingFlags.Default | BindingFlags.InvokeMethod,
-                null,
-                deltaSerializer,
-                new object[] { delta }
-            );
-            byte[] bytes = new byte[maxSize];
-            extensionSerializerType.InvokeMember("Write",
-                BindingFlags.Default | BindingFlags.InvokeMethod,
-                null,
-                null,
-                new object[] { deltaSerializer, bytes, delta }
-            );
-            object obj = extensionSerializerType.InvokeMember("Parse",
-                BindingFlags.Default | BindingFlags.InvokeMethod,
-                null,
-                null,
-                new object[] { deltaSerializer, bytes, null }
-            );
+            byte[] bytes = GeneratedType.Serialize(bar1.GetDelta(), true);
             GeneratedType bar2 = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
-            bar2.ApplyDelta(new GeneratedDeltaType(obj));
+            bar2.ApplyDelta(GeneratedType.Deserialize<GeneratedDeltaType>(GeneratedAssembly, "FooBar.BarDelta", bytes));
 
             // Assert
             Assert.Equal(200, bar2.GetProperty("Prop1"));

@@ -32,7 +32,7 @@ namespace FlatSharpDelta.Tests
 
             type = assembly.GetType(name);
 
-            if(copy == null)
+            if (copy == null)
             {
                 obj = Activator.CreateInstance(type);
             }
@@ -58,7 +58,7 @@ namespace FlatSharpDelta.Tests
             gbt.type = gbt.obj.GetType();
             gbt.assembly = gbt.type.Assembly;
             gbt.name = gbt.type.Name;
-            
+
             return gbt;
         }
 
@@ -74,7 +74,7 @@ namespace FlatSharpDelta.Tests
             gbt.type = gbt.obj.GetType();
             gbt.assembly = gbt.type.Assembly;
             gbt.name = gbt.type.Name;
-            
+
             return gbt;
         }
 
@@ -90,7 +90,7 @@ namespace FlatSharpDelta.Tests
             gbt.type = gbt.obj.GetType();
             gbt.assembly = gbt.type.Assembly;
             gbt.name = gbt.type.Name;
-            
+
             return gbt;
         }
 
@@ -134,16 +134,16 @@ namespace FlatSharpDelta.Tests
             type.GetField($"__flatsharp__{fieldName}_{index}", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(obj, value);
         }
 
-        public static bool operator==(GeneratedBaseType obj1, GeneratedBaseType obj2)
+        public static bool operator ==(GeneratedBaseType obj1, GeneratedBaseType obj2)
         {
             bool obj1IsNull = ReferenceEquals(obj1, null);
             bool obj2IsNull = ReferenceEquals(obj2, null);
 
-            if(obj1IsNull && obj2IsNull)
+            if (obj1IsNull && obj2IsNull)
             {
                 return true;
             }
-            else if(!obj1IsNull && !obj2IsNull && ReferenceEquals(obj1.obj, obj2.obj))
+            else if (!obj1IsNull && !obj2IsNull && ReferenceEquals(obj1.obj, obj2.obj))
             {
                 return true;
             }
@@ -151,16 +151,16 @@ namespace FlatSharpDelta.Tests
             return false;
         }
 
-        public static bool operator!=(GeneratedBaseType obj1, GeneratedBaseType obj2)
+        public static bool operator !=(GeneratedBaseType obj1, GeneratedBaseType obj2)
         {
             bool obj1IsNull = ReferenceEquals(obj1, null);
             bool obj2IsNull = ReferenceEquals(obj2, null);
 
-            if(obj1IsNull && obj2IsNull)
+            if (obj1IsNull && obj2IsNull)
             {
                 return false;
             }
-            else if(!obj1IsNull && !obj2IsNull && ReferenceEquals(obj1.obj, obj2.obj))
+            else if (!obj1IsNull && !obj2IsNull && ReferenceEquals(obj1.obj, obj2.obj))
             {
                 return false;
             }
@@ -170,17 +170,77 @@ namespace FlatSharpDelta.Tests
 
         public override bool Equals(object obj)
         {
-            if(obj == null || GetType() != obj.GetType())
+            if (obj == null || GetType() != obj.GetType())
             {
                 return false;
             }
-            
+
             return this.obj == ((GeneratedBaseType)obj).obj;
         }
 
         public override int GetHashCode()
         {
             return base.GetHashCode();
+        }
+
+        public static byte[] Serialize(object obj, bool useBaseType = false)
+        {
+            Type type = useBaseType ? obj.GetType().BaseType : obj.GetType();
+            object serializer = type.GetProperty("Serializer").GetValue(null, null);
+            Type serializerType = serializer.GetType();
+            Type extensionSerializerType = typeof(FlatSharp.ISerializerExtensions);
+
+            int maxSize = (int)serializerType.InvokeMember("GetMaxSize",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                serializer,
+                new object[] { obj }
+            );
+
+            byte[] bytes = new byte[maxSize];
+
+            extensionSerializerType.InvokeMember("Write",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                null,
+                new object[] { serializer, bytes, obj }
+            );
+
+            return bytes;
+        }
+
+        public static byte[] Serialize(GeneratedBaseType obj, bool useBaseType = false)
+        {
+            return Serialize(obj.NativeObject, useBaseType);
+        }
+
+        public static object Deserialize(Assembly assembly, string name, byte[] bytes)
+        {
+            object serializer = new GeneratedType(assembly, name).NativeObject.GetType().GetProperty("Serializer").GetValue(null, null);
+            Type serializerType = serializer.GetType();
+            Type extensionSerializerType = typeof(FlatSharp.ISerializerExtensions);
+
+            object obj = extensionSerializerType.InvokeMember("Parse",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                null,
+                new object[] { serializer, bytes, null }
+            );
+
+            return obj;
+        }
+
+        public static T Deserialize<T>(Assembly assembly, string name, byte[] bytes) where T : GeneratedBaseType, new()
+        {
+            object nativeObject = Deserialize(assembly, name, bytes);
+
+            T gbt = new T();
+            gbt.obj = nativeObject;
+            gbt.type = nativeObject.GetType();
+            gbt.assembly = assembly;
+            gbt.name = name;
+
+            return gbt;
         }
     }
 }

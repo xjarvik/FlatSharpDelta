@@ -28,13 +28,13 @@ namespace FlatSharpDelta.Compiler
             ";
         }
 
-        public static string WriteCode(Schema schema, FileInfo declarationFile)
+        public static string WriteCode(Schema schema, FileInfo declarationFile, DirectoryInfo declarationFileRelativeTo)
         {
             string code = String.Empty;
 
             foreach (reflection.Object obj in schema.objects)
             {
-                if (obj.declaration_file != $"//{declarationFile.Name}")
+                if (obj.declaration_file != IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName))
                 {
                     continue;
                 }
@@ -53,7 +53,7 @@ namespace FlatSharpDelta.Compiler
 
             foreach (reflection.Enum _enum in schema.enums)
             {
-                if (_enum.declaration_file != $"//{declarationFile.Name}")
+                if (_enum.declaration_file != IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName))
                 {
                     continue;
                 }

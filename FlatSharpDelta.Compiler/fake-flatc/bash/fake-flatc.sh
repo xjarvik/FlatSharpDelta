@@ -12,6 +12,5 @@ do
     fi
 done
 
-for last; do true; done
-
-cp "$last" -t "$o"
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+find $SCRIPT_DIR -name '*.bfbs' -exec cp -p '{}' "$o" ';'

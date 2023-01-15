@@ -1,0 +1,17 @@
+namespace FooBar;
+
+attribute "fs_serializer";
+attribute "fs_vector";
+
+table Foo {
+    Abc:int;
+}
+
+table Version2 (fs_serializer) {
+    Prop1:ubyte;
+    Prop2:[int];
+    Prop3:[ubyte] (fs_vector:"IList");
+    Prop4:[Foo];
+}
+
+root_type Version2;

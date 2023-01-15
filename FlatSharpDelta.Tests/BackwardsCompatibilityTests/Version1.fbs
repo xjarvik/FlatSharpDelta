@@ -1,0 +1,10 @@
+namespace FooBar;
+
+attribute "fs_serializer";
+
+table Version1 (fs_serializer) {
+    Prop1:ubyte;
+    Prop2:[int];
+}
+
+root_type Version1;

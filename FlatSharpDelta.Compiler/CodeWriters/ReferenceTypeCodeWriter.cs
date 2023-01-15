@@ -180,6 +180,11 @@ namespace FlatSharpDelta.Compiler
 
             obj.ForEachFieldExceptUType(field =>
             {
+                if (field.deprecated)
+                {
+                    return;
+                }
+
                 if (schema.TypeIsReferenceTypeArray(field.type))
                 {
                     for (int arrayIndex = 0; arrayIndex < field.type.fixed_length; arrayIndex++)

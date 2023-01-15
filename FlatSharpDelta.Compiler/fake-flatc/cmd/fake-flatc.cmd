@@ -14,6 +14,4 @@ shift
 goto initial
 :done
 
-for %%a in (%*) do set last=%%a
-
-copy "%last%" "%o%"
+copy %~dp0\*.bfbs "%o%"

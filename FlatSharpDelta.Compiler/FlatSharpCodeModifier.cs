@@ -30,7 +30,7 @@ namespace FlatSharpDelta.Compiler
 
                 foreach (reflection.Object obj in schema.objects)
                 {
-                    if (obj.declaration_file == $"//{declarationFile.Name}" && obj.IsReferenceType())
+                    if (obj.declaration_file == IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, Program.ExecutingDirectory.FullName) && obj.IsReferenceType())
                     {
                         generatedCode = ModifyListTypesInReferenceType(generatedCode, schema, obj);
                     }

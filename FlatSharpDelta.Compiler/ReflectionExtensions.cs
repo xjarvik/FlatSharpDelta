@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using reflection;
 
 namespace reflection
@@ -15,15 +16,20 @@ namespace reflection
         IList<KeyValue> attributes { get; set; }
     }
 
-    public partial class Object : INameProperty, IAttributesProperty
+    public interface IDeclarationFileProperty
+    {
+        string declaration_file { get; set; }
+    }
+
+    public partial class Object : INameProperty, IAttributesProperty, IDeclarationFileProperty
     {
     }
 
-    public partial class Enum : INameProperty, IAttributesProperty
+    public partial class Enum : INameProperty, IAttributesProperty, IDeclarationFileProperty
     {
     }
 
-    public partial class Service : INameProperty, IAttributesProperty
+    public partial class Service : INameProperty, IAttributesProperty, IDeclarationFileProperty
     {
     }
 
@@ -74,32 +80,28 @@ namespace FlatSharpDelta.Compiler
         public static bool RemoveAttribute(this IAttributesProperty self, string key) => self.HasAttribute(key) ? self.attributes.Remove(self.GetAttribute(key)) : false;
     }
 
+    static class IDeclarationFilePropertyExtensions
+    {
+        public static string GetDeclarationFileString(string declarationFilePath, string declarationFileRelativeTo) => $"//{Path.GetRelativePath(declarationFileRelativeTo, declarationFilePath).Replace("\\", "/")}";
+    }
+
     static class SchemaExtensions
     {
-        public static void ReplaceMatchingDeclarationFiles(this Schema schema, string declarationFileToMatch, string replacementDeclarationFile)
+        public static void ForEachDeclarationFileProperty(this Schema schema, Action<IDeclarationFileProperty> callback)
         {
             foreach (reflection.Object obj in schema.objects)
             {
-                if (obj.declaration_file == declarationFileToMatch)
-                {
-                    obj.declaration_file = replacementDeclarationFile;
-                }
+                callback(obj);
             }
 
             foreach (reflection.Enum _enum in schema.enums)
             {
-                if (_enum.declaration_file == declarationFileToMatch)
-                {
-                    _enum.declaration_file = replacementDeclarationFile;
-                }
+                callback(_enum);
             }
 
             foreach (Service service in schema.services)
             {
-                if (service.declaration_file == declarationFileToMatch)
-                {
-                    service.declaration_file = replacementDeclarationFile;
-                }
+                callback(service);
             }
         }
 
