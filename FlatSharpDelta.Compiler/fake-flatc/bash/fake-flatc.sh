@@ -13,4 +13,4 @@ do
 done
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-find $SCRIPT_DIR -name '*.bfbs' -exec cp -p '{}' "$o" ';'
+find $SCRIPT_DIR -maxdepth 1 -name '*.bfbs' -exec cp -p '{}' "$o" ';'

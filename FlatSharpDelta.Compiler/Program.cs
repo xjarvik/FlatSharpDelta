@@ -272,8 +272,6 @@ namespace FlatSharpDelta.Compiler
                         File.WriteAllBytes(schemaWithDeltaTypesBfbsFilePath, schemaWithDeltaTypesBfbs);
                         schemaWithDeltaTypesBfbsFiles.Add(new FileInfo(schemaWithDeltaTypesBfbsFilePath));
                     });
-
-                    groupDir.Delete(true);
                 });
 
                 if (validationErrors.Count > 0)
@@ -363,7 +361,7 @@ namespace FlatSharpDelta.Compiler
 
                 // We pass in "fake-flatc", which is just a shell script that copies the bfbs files (because we already have them).
                 // It's quite a hack, but it works.
-                "--flatc-path", GetExecutableCommand(fakeFlatcFile)
+                "--flatc-path", fakeFlatcFile.FullName
             },
             out string consoleOutput);
 
@@ -544,22 +542,6 @@ namespace FlatSharpDelta.Compiler
 
             process.Start();
             process.WaitForExit();
-        }
-
-        static string GetExecutableCommand(FileInfo file)
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return file.FullName;
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                return "./" + file.FullName.TrimStart('/');
-            }
-            else
-            {
-                throw new FlatSharpDeltaException("FlatSharpDelta compiler is not supported on this operating system.");
-            }
         }
     }
 }
