@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
+using FlatSharp;
 using Xunit;
 
 namespace FlatSharpDelta.Tests
@@ -166,6 +167,51 @@ namespace FlatSharpDelta.Tests
             Assert.NotNull(bar2.GetProperty("Prop12"));
             Assert.Single(bar2.GetProperty<GeneratedListType>("Prop12"));
             Assert.Equal(0, bar2.GetProperty<GeneratedListType>("Prop12").GetIndexerProperty<GeneratedType>(0).GetProperty<GeneratedType>("MyFoo3").GetField("Abc3"));
+        }
+
+        [Fact]
+        public void ParseBytes_LazyTableWithListField_ThrowsOnListModification()
+        {
+            // Arrange
+            GeneratedType foo6 = new GeneratedType(GeneratedAssembly, "FooBar.Foo6");
+            GeneratedListType foo1List = new GeneratedListType(GeneratedAssembly, "FooBar.Foo1List");
+            GeneratedType foo1ListItem = new GeneratedType(GeneratedAssembly, "FooBar.Foo1");
+            foo1ListItem.SetProperty("Abc1", 1000);
+            foo1List.Add(foo1ListItem);
+            foo6.SetProperty("Abc1", foo1List);
+
+            // Act
+            byte[] bytes = GeneratedType.Serialize(foo6);
+            GeneratedType deserializedFoo6 = GeneratedType.Deserialize<GeneratedType>(GeneratedAssembly, "FooBar.Foo6", bytes);
+
+            // Assert
+            Assert.NotNull(deserializedFoo6.GetProperty("Abc1"));
+            GeneratedListType list = deserializedFoo6.GetProperty<GeneratedListType>("Abc1");
+            Assert.Single(list);
+            TargetInvocationException e1 = Assert.Throws<TargetInvocationException>(() => { list.GetProperty("Capacity"); });
+            Assert.IsType<NotSupportedException>(e1.InnerException);
+            TargetInvocationException e2 = Assert.Throws<TargetInvocationException>(() => { list.SetProperty("Capacity", 123); });
+            Assert.IsType<NotMutableException>(e2.InnerException);
+            TargetInvocationException e3 = Assert.Throws<TargetInvocationException>(() => { list.SetIndexerProperty(0, new GeneratedType(GeneratedAssembly, "FooBar.Foo1")); });
+            Assert.IsType<NotMutableException>(e3.InnerException);
+            TargetInvocationException e4 = Assert.Throws<TargetInvocationException>(() => { list.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo1")); });
+            Assert.IsType<NotMutableException>(e4.InnerException);
+            TargetInvocationException e5 = Assert.Throws<TargetInvocationException>(() => { list.Clear(); });
+            Assert.IsType<NotMutableException>(e5.InnerException);
+            TargetInvocationException e6 = Assert.Throws<TargetInvocationException>(() => { list.Insert(0, new GeneratedType(GeneratedAssembly, "FooBar.Foo1")); });
+            Assert.IsType<NotMutableException>(e6.InnerException);
+            TargetInvocationException e7 = Assert.Throws<TargetInvocationException>(() => { list.Move(0, 1); });
+            Assert.IsType<NotMutableException>(e7.InnerException);
+            TargetInvocationException e8 = Assert.Throws<TargetInvocationException>(() => { list.Remove(new GeneratedType(GeneratedAssembly, "FooBar.Foo1")); });
+            Assert.IsType<NotMutableException>(e8.InnerException);
+            TargetInvocationException e9 = Assert.Throws<TargetInvocationException>(() => { list.RemoveAt(0); });
+            Assert.IsType<NotMutableException>(e9.InnerException);
+            TargetInvocationException e10 = Assert.Throws<TargetInvocationException>(() => { list.GetDelta(); });
+            Assert.IsType<NotSupportedException>(e10.InnerException);
+            TargetInvocationException e11 = Assert.Throws<TargetInvocationException>(() => { list.ApplyDelta(null); });
+            Assert.IsType<NotMutableException>(e11.InnerException);
+            TargetInvocationException e12 = Assert.Throws<TargetInvocationException>(() => { list.UpdateReferenceState(); });
+            Assert.IsType<NotMutableException>(e12.InnerException);
         }
     }
 }

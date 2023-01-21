@@ -51,6 +51,20 @@ namespace FlatSharpDelta.Tests
             return new GeneratedListType(shallowCopy);
         }
 
+        public static GeneratedListType AsImmutable(Assembly assembly, string name, GeneratedListType list)
+        {
+            Type listType = list.NativeObject.GetType();
+
+            object immutableList = listType.InvokeMember("AsImmutable",
+                BindingFlags.Default | BindingFlags.InvokeMethod,
+                null,
+                null,
+                new object[] { list.NativeObject }
+            );
+
+            return new GeneratedListType(immutableList);
+        }
+
         public void Add(GeneratedType item)
         {
             type.InvokeMember("Add",
@@ -231,7 +245,7 @@ namespace FlatSharpDelta.Tests
                 BindingFlags.Default | BindingFlags.InvokeMethod,
                 null,
                 obj,
-                new object[] { delta.Select(d => d.NativeObject).ToList() }
+                new object[] { delta != null ? delta.Select(d => d.NativeObject).ToList() : null }
             );
         }
 

@@ -23,21 +23,39 @@ namespace FlatSharpDelta.Tests
                     "DuplicateInputFilesTests.fbs",
                     "DuplicateInputFilesTests.fbs",
                     "DuplicateInputFilesTests.fbs",
-                    "DuplicateInputFilesTests.fbs"
+                    "DuplicateInputFilesTests.fbs",
+                    Path.Combine("NestedFolder", "DuplicateInputFilesTests.fbs")
                 };
+            }
+
+            public bool CatchCompilerException
+            {
+                get => true;
             }
         }
 
         private Assembly GeneratedAssembly { get; set; }
+        private Exception CompilerException { get; set; }
 
         public DuplicateInputFilesTests(AssemblyFixture<DuplicateInputFilesTests.Configuration> fixture)
         {
             GeneratedAssembly = fixture.GeneratedAssembly;
+            CompilerException = fixture.CompilerException;
         }
 
         [Fact]
         public void Compiler_DuplicateInputFiles_GeneratesValidCSharpCode()
         {
+            // Assert
+            Assert.Null(CompilerException);
+        }
+
+        [Fact]
+        public void Compiler_SameFileNames_GeneratesCodeForBothFiles()
+        {
+            // Arrange
+            GeneratedType bar1 = new GeneratedType(GeneratedAssembly, "FooBar.Bar1");
+            GeneratedType bar2 = new GeneratedType(GeneratedAssembly, "FooBar.Bar2");
         }
     }
 }

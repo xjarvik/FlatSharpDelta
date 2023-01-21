@@ -102,6 +102,56 @@ namespace FlatSharpDelta.Tests
         }
 
         [Fact]
+        public void GetDelta_MyFooItemWasModifiedThenMoved_ReturnsTwoListOperations()
+        {
+            // Arrange
+            GeneratedListType fooList = new GeneratedListType(GeneratedAssembly, "FooBar.FooList");
+            GeneratedType bar = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            bar.SetProperty("MyFooList", fooList);
+            GeneratedType listItem1 = new GeneratedType(GeneratedAssembly, "FooBar.Foo");
+            GeneratedType listItem2 = new GeneratedType(GeneratedAssembly, "FooBar.Foo");
+            GeneratedType listItem3 = new GeneratedType(GeneratedAssembly, "FooBar.Foo");
+            fooList.Add(listItem1);
+            fooList.Add(listItem2);
+            fooList.Add(listItem3);
+            bar.UpdateReferenceState();
+            listItem3.SetProperty("Abc", 123);
+            fooList.Move(2, 0);
+
+            // Act
+            GeneratedDeltaType delta = bar.GetDelta();
+
+            // Assert
+            Assert.NotNull(delta);
+            Assert.Equal(2, delta.GetProperty<GeneratedListType>("MyFooListDelta").Count);
+        }
+
+        [Fact]
+        public void GetDelta_MyFooItemWasModifiedThenRemoved_ReturnsOneListOperation()
+        {
+            // Arrange
+            GeneratedListType fooList = new GeneratedListType(GeneratedAssembly, "FooBar.FooList");
+            GeneratedType bar = new GeneratedType(GeneratedAssembly, "FooBar.Bar");
+            bar.SetProperty("MyFooList", fooList);
+            GeneratedType listItem1 = new GeneratedType(GeneratedAssembly, "FooBar.Foo");
+            GeneratedType listItem2 = new GeneratedType(GeneratedAssembly, "FooBar.Foo");
+            GeneratedType listItem3 = new GeneratedType(GeneratedAssembly, "FooBar.Foo");
+            fooList.Add(listItem1);
+            fooList.Add(listItem2);
+            fooList.Add(listItem3);
+            bar.UpdateReferenceState();
+            listItem3.SetProperty("Abc", 123);
+            fooList.Remove(listItem3);
+
+            // Act
+            GeneratedDeltaType delta = bar.GetDelta();
+
+            // Assert
+            Assert.NotNull(delta);
+            Assert.Single(delta.GetProperty<GeneratedListType>("MyFooListDelta"));
+        }
+
+        [Fact]
         public void GetDelta_MyFooListWasCleared_ReturnsOneListOperation()
         {
             // Arrange

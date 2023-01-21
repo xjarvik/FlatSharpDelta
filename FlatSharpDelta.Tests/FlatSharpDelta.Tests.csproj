@@ -6,9 +6,10 @@
 
   <ItemGroup>
     <Content Include="./**/*.fbs">
-      <Link>%(Filename)%(Extension)</Link>
+      <Link>fixtures/%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Remove="bin/**/*.fbs" />
   </ItemGroup>
 
   <ItemGroup>

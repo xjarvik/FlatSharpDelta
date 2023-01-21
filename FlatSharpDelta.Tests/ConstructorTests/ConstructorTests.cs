@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
+using FlatSharp;
 using Xunit;
 
 namespace FlatSharpDelta.Tests
@@ -145,6 +146,70 @@ namespace FlatSharpDelta.Tests
 
             // Assert
             Assert.Equal(foo1List1[0], foo1List2[0]);
+        }
+
+        [Fact]
+        public void AsImmutableList_CopyPopulatedList_ObjectReferencesEqual()
+        {
+            // Arrange
+            GeneratedListType foo1List1 = new GeneratedListType(GeneratedAssembly, "FooBar.Foo1List");
+            foo1List1.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo1"));
+
+            // Act
+            GeneratedListType foo1List2 = GeneratedListType.AsImmutable(GeneratedAssembly, "FooBar.Foo1List", foo1List1);
+
+            // Assert
+            Assert.Equal(foo1List1[0], foo1List2[0]);
+        }
+
+        [Fact]
+        public void AsImmutableList_AccessPropertiesOfCustomListType_DoesNotThrow()
+        {
+            // Arrange
+            GeneratedListType foo1List1 = new GeneratedListType(GeneratedAssembly, "FooBar.Foo1List");
+            foo1List1.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo1"));
+            foo1List1.SetProperty("Capacity", 5);
+
+            // Act
+            GeneratedListType foo1List2 = GeneratedListType.AsImmutable(GeneratedAssembly, "FooBar.Foo1List", foo1List1);
+
+            // Assert
+            Assert.Equal(5, foo1List2.GetProperty("Capacity"));
+            Assert.NotNull(foo1List1.GetDelta());
+        }
+
+        [Fact]
+        public void AsImmutableList_ModifyList_Throws()
+        {
+            // Arrange
+            GeneratedListType foo1List1 = new GeneratedListType(GeneratedAssembly, "FooBar.Foo1List");
+            foo1List1.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo1"));
+
+            // Act
+            GeneratedListType foo1List2 = GeneratedListType.AsImmutable(GeneratedAssembly, "FooBar.Foo1List", foo1List1);
+
+            // Assert
+            Assert.Single(foo1List2);
+            TargetInvocationException e1 = Assert.Throws<TargetInvocationException>(() => { foo1List2.SetProperty("Capacity", 123); });
+            Assert.IsType<NotMutableException>(e1.InnerException);
+            TargetInvocationException e2 = Assert.Throws<TargetInvocationException>(() => { foo1List2.SetIndexerProperty(0, new GeneratedType(GeneratedAssembly, "FooBar.Foo1")); });
+            Assert.IsType<NotMutableException>(e2.InnerException);
+            TargetInvocationException e3 = Assert.Throws<TargetInvocationException>(() => { foo1List2.Add(new GeneratedType(GeneratedAssembly, "FooBar.Foo1")); });
+            Assert.IsType<NotMutableException>(e3.InnerException);
+            TargetInvocationException e4 = Assert.Throws<TargetInvocationException>(() => { foo1List2.Clear(); });
+            Assert.IsType<NotMutableException>(e4.InnerException);
+            TargetInvocationException e5 = Assert.Throws<TargetInvocationException>(() => { foo1List2.Insert(0, new GeneratedType(GeneratedAssembly, "FooBar.Foo1")); });
+            Assert.IsType<NotMutableException>(e5.InnerException);
+            TargetInvocationException e6 = Assert.Throws<TargetInvocationException>(() => { foo1List2.Move(0, 1); });
+            Assert.IsType<NotMutableException>(e6.InnerException);
+            TargetInvocationException e7 = Assert.Throws<TargetInvocationException>(() => { foo1List2.Remove(new GeneratedType(GeneratedAssembly, "FooBar.Foo1")); });
+            Assert.IsType<NotMutableException>(e7.InnerException);
+            TargetInvocationException e8 = Assert.Throws<TargetInvocationException>(() => { foo1List2.RemoveAt(0); });
+            Assert.IsType<NotMutableException>(e8.InnerException);
+            TargetInvocationException e9 = Assert.Throws<TargetInvocationException>(() => { foo1List2.ApplyDelta(null); });
+            Assert.IsType<NotMutableException>(e9.InnerException);
+            TargetInvocationException e10 = Assert.Throws<TargetInvocationException>(() => { foo1List2.UpdateReferenceState(); });
+            Assert.IsType<NotMutableException>(e10.InnerException);
         }
     }
 }

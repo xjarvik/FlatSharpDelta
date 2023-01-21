@@ -2,8 +2,8 @@ namespace FooBar;
 
 attribute "fs_serializer";
 
-table Bar1 (fs_serializer) {
+table Bar2 (fs_serializer) {
     Prop1:int = 100;
 }
 
-root_type Bar1;
+root_type Bar2;

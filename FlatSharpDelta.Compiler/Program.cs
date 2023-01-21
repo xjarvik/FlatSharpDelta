@@ -127,9 +127,24 @@ namespace FlatSharpDelta.Compiler
 
         static FileInfo GetIncludedBaseCompilerFile()
         {
+            string name;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                name = "FlatSharp.Compiler.exe";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                name = "FlatSharp.Compiler";
+            }
+            else
+            {
+                throw new FlatSharpDeltaException("FlatSharpDelta compiler is not supported on this operating system.");
+            }
+
             return new FileInfo
             (
-                Path.Combine(Path.GetDirectoryName(typeof(Program).Assembly.Location), "FlatSharp.Compiler", "FlatSharp.Compiler.dll")
+                Path.Combine(ExecutingDirectory.FullName, "FlatSharp.Compiler", name)
             );
         }
 
@@ -466,7 +481,7 @@ namespace FlatSharpDelta.Compiler
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = "dotnet",
+                    FileName = path,
                     CreateNoWindow = true,
                     RedirectStandardError = true,
                     RedirectStandardOutput = true,
@@ -474,7 +489,6 @@ namespace FlatSharpDelta.Compiler
                 }
             };
 
-            process.StartInfo.ArgumentList.Add(path);
             foreach (string arg in args)
             {
                 process.StartInfo.ArgumentList.Add(arg);

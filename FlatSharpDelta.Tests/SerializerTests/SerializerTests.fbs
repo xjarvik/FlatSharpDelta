@@ -27,6 +27,10 @@ union Foo5 {
     MyFoo3:Foo3
 }
 
+table Foo6 (fs_serializer:"Lazy") {
+    Abc1:[Foo1];
+}
+
 table Bar (fs_serializer) {
     Prop1:int = 100;
     Prop2:string;

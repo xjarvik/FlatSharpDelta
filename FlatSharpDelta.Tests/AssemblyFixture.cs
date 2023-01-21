@@ -22,8 +22,8 @@ namespace FlatSharpDelta.Tests
             T configuration = new T();
             string testClassName = configuration.TestType.Name;
             string currentDirectory = Path.GetDirectoryName(configuration.TestType.Assembly.Location);
-            string inputFiles = String.Join(";", configuration.FbsFiles.Select(fbsFile => Path.Combine(currentDirectory, fbsFile)));
-            outputDirectory = new DirectoryInfo(Path.Combine(currentDirectory, "temp", testClassName));
+            string inputFiles = String.Join(";", configuration.FbsFiles.Select(fbsFile => Path.Combine(currentDirectory, "fixtures", testClassName, fbsFile)));
+            outputDirectory = new DirectoryInfo(Path.Combine(currentDirectory, "fixtures", testClassName, "output"));
             Directory.CreateDirectory(outputDirectory.FullName);
             ClearOutputDirectory();
 
