@@ -38,7 +38,9 @@ namespace FlatSharpDelta.Compiler
                     {
                         InputFiles = GetInputFiles(compilerOptions.Input),
                         OutputDirectory = GetOutputDirectory(compilerOptions.Output),
-                        BaseCompilerFile = compilerOptions.BaseCompiler != null ? GetBaseCompilerFile(compilerOptions.BaseCompiler) : GetIncludedBaseCompilerFile()
+                        BaseCompilerFile = compilerOptions.BaseCompiler != null ? GetBaseCompilerFile(compilerOptions.BaseCompiler) : GetIncludedBaseCompilerFile(),
+                        IncludesDirectories = compilerOptions.Includes != null ? GetIncludesDirectories(compilerOptions.Includes) : new DirectoryInfo[0],
+                        NormalizeFieldNames = compilerOptions.NormalizeFieldNames.Value
                     };
 
                     if (compilerOptions.DebugMode || InputFilesChanged(compilerStartInfo.InputFiles, compilerStartInfo.OutputDirectory))
@@ -111,6 +113,24 @@ namespace FlatSharpDelta.Compiler
             }
 
             return new DirectoryInfo(sanitizedOutputPath);
+        }
+
+        static DirectoryInfo[] GetIncludesDirectories(string includes)
+        {
+            return includes.Split(";").Select(include =>
+            {
+                string sanitizedIncludesPath = GetSanitizedPath(include);
+
+                if (!PathIsDirectory(sanitizedIncludesPath))
+                {
+                    throw new FlatSharpDeltaException($"{includes} is not a valid directory.");
+                }
+
+                return new DirectoryInfo(sanitizedIncludesPath);
+            })
+            .GroupBy(d => d.FullName)
+            .Select(d => d.First())
+            .ToArray();
         }
 
         static FileInfo GetBaseCompilerFile(string baseCompiler)
@@ -242,7 +262,7 @@ namespace FlatSharpDelta.Compiler
                 Parallel.ForEach(GroupFilesByUniqueNames(startInfo.InputFiles), fileGroup =>
                 {
                     DirectoryInfo groupDir = Directory.CreateDirectory(Path.Combine(tempDirPath, Guid.NewGuid().ToString("N")));
-                    GenerateBfbsFiles(fileGroup, groupDir);
+                    GenerateBfbsFiles(fileGroup, groupDir, startInfo.IncludesDirectories);
 
                     Parallel.ForEach(groupDir.GetFiles("*.bfbs"), originalSchemaBfbsFile =>
                     {
@@ -250,6 +270,12 @@ namespace FlatSharpDelta.Compiler
 
                         byte[] originalSchemaBfbs = File.ReadAllBytes(originalSchemaBfbsFile.FullName);
                         Schema originalSchema = Schema.Serializer.Parse(originalSchemaBfbs);
+
+                        if (startInfo.NormalizeFieldNames)
+                        {
+                            originalSchema.NormalizeFieldNames();
+                        }
+
                         originalSchemas[inputFile] = originalSchema;
                         SchemaValidator.ValidateSchema(originalSchema).ToList().ForEach(e => validationErrors.Add(e));
 
@@ -323,7 +349,7 @@ namespace FlatSharpDelta.Compiler
             return groups;
         }
 
-        static void GenerateBfbsFiles(IEnumerable<FileInfo> inputFiles, DirectoryInfo outputDirectory)
+        static void GenerateBfbsFiles(IEnumerable<FileInfo> inputFiles, DirectoryInfo outputDirectory, IEnumerable<DirectoryInfo> includesDirectories)
         {
             List<string> args = new List<string>
             {
@@ -334,9 +360,9 @@ namespace FlatSharpDelta.Compiler
                 "--bfbs-filenames", ExecutingDirectory.FullName,
                 "--no-warnings",
                 "-o", outputDirectory.FullName
-                // add -I
             };
 
+            args.AddRange(includesDirectories.SelectMany(d => new string[] { "-I", d.FullName }));
             args.AddRange(inputFiles.Select(f => f.FullName));
 
             int exitCode = RunFlatc(args.ToArray(), out string consoleOutput);
@@ -357,7 +383,7 @@ namespace FlatSharpDelta.Compiler
             {
                 "-i", String.Join(';', bfbsFiles.Select(f => f.FullName)),
                 "-o", outputDirectory.FullName,
-                "--normalize-field-names", "false", // fix
+                "--normalize-field-names", "false",
 
                 // We pass in "fake-flatc", which is just a shell script that copies the bfbs files (because we already have them).
                 // It's quite a hack, but it works.

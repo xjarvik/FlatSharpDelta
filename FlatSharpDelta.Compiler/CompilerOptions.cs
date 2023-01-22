@@ -11,10 +11,16 @@ namespace FlatSharpDelta.Compiler
         [Option('o', "output", Required = true, HelpText = "Output directory.")]
         public string Output { get; set; }
 
-        [Option('c', "compiler", Required = false, HelpText = "Path to the base FlatSharp compiler.")]
+        [Option('c', "compiler", HelpText = "Path to the base FlatSharp compiler.")]
         public string BaseCompiler { get; set; }
 
-        [Option("debug", Default = false, Required = false, Hidden = true)]
+        [Option('I', "includes", HelpText = "Search path(s) for the \"include\" statement.")]
+        public string Includes { get; set; }
+
+        [Option("normalize-field-names", Default = true, HelpText = "Transform snake_case and camelCase field names to PascalCase.")]
+        public bool? NormalizeFieldNames { get; set; }
+
+        [Option("debug", Default = false, Hidden = true)]
         public bool DebugMode { get; set; }
     }
 }

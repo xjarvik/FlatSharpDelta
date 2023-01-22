@@ -8,5 +8,7 @@ namespace FlatSharpDelta.Compiler
         public FileInfo[] InputFiles { get; set; }
         public DirectoryInfo OutputDirectory { get; set; }
         public FileInfo BaseCompilerFile { get; set; }
+        public DirectoryInfo[] IncludesDirectories { get; set; }
+        public bool NormalizeFieldNames { get; set; }
     }
 }

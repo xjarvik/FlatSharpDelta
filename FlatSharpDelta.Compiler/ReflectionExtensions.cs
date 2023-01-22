@@ -313,6 +313,14 @@ namespace FlatSharpDelta.Compiler
 
             return csharpDeltaType;
         }
+
+        public static void NormalizeFieldNames(this Schema schema)
+        {
+            foreach (reflection.Object obj in schema.objects)
+            {
+                obj.NormalizeFieldNames();
+            }
+        }
     }
 
     static class ObjectExtensions
@@ -331,11 +339,46 @@ namespace FlatSharpDelta.Compiler
         public static bool IsReferenceType(this reflection.Object obj) => !obj.HasAttribute("fs_valueStruct") || (obj.GetAttribute("fs_valueStruct").value == "false" && obj.is_struct);
 
         public static bool IsValueStruct(this reflection.Object obj) => obj.HasAttribute("fs_valueStruct") && obj.GetAttribute("fs_valueStruct").value != "false" && obj.is_struct;
+
+        public static void NormalizeFieldNames(this reflection.Object obj)
+        {
+            bool normalizeObj = !obj.HasAttribute("fs_literalName") || obj.GetAttribute("fs_literalName").value == "false";
+
+            foreach (Field field in obj.fields)
+            {
+                bool normalizeField = !field.HasAttribute("fs_literalName") ? normalizeObj : field.GetAttribute("fs_literalName").value == "false";
+
+                if (normalizeField)
+                {
+                    field.NormalizeFieldName();
+                }
+            }
+        }
     }
 
     static class EnumExtensions
     {
         public static bool IsUnion(this reflection.Enum _enum) => _enum.is_union;
+    }
+
+    static class FieldExtensions
+    {
+        public static void NormalizeFieldName(this Field field)
+        {
+            string normalized = String.Empty;
+            string[] parts = field.name.Split('_', StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string part in parts)
+            {
+                normalized += char.ToUpperInvariant(part[0]);
+                if (part.Length > 1)
+                {
+                    normalized += part.Substring(1);
+                }
+            }
+
+            field.name = normalized;
+        }
     }
 
     static class TypeExtensions
