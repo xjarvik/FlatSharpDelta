@@ -84,10 +84,18 @@ namespace FlatSharpDelta.Tests
                 references.Add(MetadataReference.CreateFromFile(Assembly.Load(referencedAssembly).Location));
             }
 
+#if NET7_0_OR_GREATER
+            CSharpParseOptions parseOptions = new CSharpParseOptions()
+                .WithLanguageVersion(LanguageVersion.CSharp11)
+                .WithPreprocessorSymbols(new [] { "NET7_0_OR_GREATER" });
+#else
+            CSharpParseOptions parseOptions = new CSharpParseOptions();
+#endif
+
             CSharpCompilation compilation = CSharpCompilation.Create
             (
                 assemblyName,
-                outputDirectory.GetFiles().Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file.FullName))),
+                outputDirectory.GetFiles().Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file.FullName), parseOptions)),
                 references,
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
             );

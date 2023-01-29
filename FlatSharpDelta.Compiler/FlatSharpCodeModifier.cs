@@ -99,6 +99,14 @@ namespace FlatSharpDelta.Compiler
 
             generatedCode = ReplaceAllInRange(
                 generatedCode,
+                $@"public required override System.Collections.Generic.IList<.+>\?* \b{field.name}\b",
+                $"public required override {listType}? {field.name}",
+                tableReaderStart,
+                tableReaderEnd
+            );
+
+            generatedCode = ReplaceAllInRange(
+                generatedCode,
                 $@"public override System.Collections.Generic.IList<.+>\?* \b{field.name}\b",
                 $"public override {listType}? {field.name}",
                 tableReaderStart,

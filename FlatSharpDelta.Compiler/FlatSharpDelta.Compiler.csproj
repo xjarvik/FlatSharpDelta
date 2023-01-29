@@ -2,18 +2,46 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
     <FlatSharpSchema Include="reflection.fbs" />
   </ItemGroup>
 
+  <Choose>
+
+    <When Condition="Exists('$(PkgFlatSharp_Compiler)/tools/$(TargetFramework)')">
+      <ItemGroup>
+        <Content Include="$(PkgFlatSharp_Compiler)/tools/$(TargetFramework)/**/*.*">
+          <Link>FlatSharp.Compiler/%(RecursiveDir)%(Filename)%(Extension)</Link>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+      </ItemGroup>
+    </When>
+
+    <When Condition="Exists('$(PkgFlatSharp_Compiler)/tools/net7.0')">
+      <ItemGroup>
+        <Content Include="$(PkgFlatSharp_Compiler)/tools/net7.0/**/*.*">
+          <Link>FlatSharp.Compiler/%(RecursiveDir)%(Filename)%(Extension)</Link>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+      </ItemGroup>
+    </When>
+
+    <When Condition="Exists('$(PkgFlatSharp_Compiler)/tools/net6.0')">
+      <ItemGroup>
+        <Content Include="$(PkgFlatSharp_Compiler)/tools/net6.0/**/*.*">
+          <Link>FlatSharp.Compiler/%(RecursiveDir)%(Filename)%(Extension)</Link>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+      </ItemGroup>
+    </When>
+
+  </Choose>
+
   <ItemGroup>
-    <Content Include="$(PkgFlatSharp_Compiler)/tools/$(TargetFramework)/**/*.*">
-      <Link>FlatSharp.Compiler/%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="fake-flatc/**/*.*">
       <Link>fake-flatc/%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -27,7 +55,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="FlatSharp.Runtime" Version="7.0.2" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.0-2.final" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.5.0-2.final" />
   </ItemGroup>
   
   <PropertyGroup>

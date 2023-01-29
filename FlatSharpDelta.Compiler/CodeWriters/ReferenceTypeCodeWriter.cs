@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using reflection;
 
 namespace FlatSharpDelta.Compiler
@@ -89,11 +90,15 @@ namespace FlatSharpDelta.Compiler
         {
             string name = obj.GetNameWithoutNamespace();
             int fieldCount = schema.GetFieldCountIncludingDeltaFields(obj);
+            string requiredFieldSetters = String.Join(',', obj.fields.Where(f => f.required).Select(f => $"{f.name} = default!"));
 
             return $@"
                 partial void OnInitialized(FlatBufferDeserializationContext? context)
                 {{
-                    original = new {name}(new FlatBufferDeserializationContext(FlatBufferDeserializationOption.Default));
+                    original = new {name}(new FlatBufferDeserializationContext(FlatBufferDeserializationOption.Default))
+                    {{
+                        {requiredFieldSetters}
+                    }};
                     delta = new Mutable{name}Delta();
                     byteFields = new List<byte>();
                     {(fieldCount > 256 ? "shortFields = new List<ushort>();" : String.Empty)}

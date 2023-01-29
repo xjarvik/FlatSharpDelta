@@ -178,16 +178,18 @@ namespace FlatSharpDelta.Compiler
 
         private static Field GetByteFieldsField()
         {
-            Field byteFields = new Field();
-
-            byteFields.name = "ByteFields";
-            byteFields.id = 0;
-            byteFields.type = new reflection.Type
+            Field byteFields = new Field
             {
-                base_type = BaseType.Vector,
-                element = BaseType.UByte
+                name = "ByteFields",
+                id = 0,
+                offset = 4,
+                type = new reflection.Type
+                {
+                    base_type = BaseType.Vector,
+                    element = BaseType.UByte
+                }
             };
-            byteFields.offset = 4;
+
             byteFields.SetAttribute("fs_setter", "Protected");
             byteFields.SetAttribute("fs_vector", "IReadOnlyList");
 
@@ -196,16 +198,18 @@ namespace FlatSharpDelta.Compiler
 
         private static Field GetShortFieldsField()
         {
-            Field shortFields = new Field();
-
-            shortFields.name = "ShortFields";
-            shortFields.id = 1;
-            shortFields.type = new reflection.Type
+            Field shortFields = new Field
             {
-                base_type = BaseType.Vector,
-                element = BaseType.UShort
+                name = "ShortFields",
+                id = 1,
+                offset = 6,
+                type = new reflection.Type
+                {
+                    base_type = BaseType.Vector,
+                    element = BaseType.UShort
+                }
             };
-            shortFields.offset = 6;
+
             shortFields.SetAttribute("fs_setter", "Protected");
             shortFields.SetAttribute("fs_vector", "IReadOnlyList");
 
@@ -286,44 +290,44 @@ namespace FlatSharpDelta.Compiler
         {
             Schema schema = context.Schema;
 
-            reflection.Object listDeltaObj = new reflection.Object();
-
-            listDeltaObj.name = baseObj.name + "ListDelta";
-
-            listDeltaObj.fields = new List<Field>
+            reflection.Object listDeltaObj = new reflection.Object
             {
-                new Field
+                name = baseObj.name + "ListDelta",
+                fields = new List<Field>
                 {
-                    name = "Operation",
-                    type = new reflection.Type { base_type = BaseType.UByte, index = context.ListOperationIndex },
-                    id = 0,
-                    offset = 4,
-                    attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
-                },
-                new Field
-                {
-                    name = "CurrentIndex",
-                    type = new reflection.Type { base_type = BaseType.Int },
-                    id = 1,
-                    offset = 6,
-                    attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
-                },
-                new Field
-                {
-                    name = "NewIndex",
-                    type = new reflection.Type { base_type = BaseType.Int },
-                    id = 2,
-                    offset = 8,
-                    attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
-                },
-                new Field
-                {
-                    name = "BaseValue",
-                    type = new reflection.Type { base_type = BaseType.Obj, index = schema.objects.IndexOf(baseObj) },
-                    id = 3,
-                    offset = 10,
-                    attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } },
-                    optional = true
+                    new Field
+                    {
+                        name = "Operation",
+                        type = new reflection.Type { base_type = BaseType.UByte, index = context.ListOperationIndex },
+                        id = 0,
+                        offset = 4,
+                        attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
+                    },
+                    new Field
+                    {
+                        name = "CurrentIndex",
+                        type = new reflection.Type { base_type = BaseType.Int },
+                        id = 1,
+                        offset = 6,
+                        attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
+                    },
+                    new Field
+                    {
+                        name = "NewIndex",
+                        type = new reflection.Type { base_type = BaseType.Int },
+                        id = 2,
+                        offset = 8,
+                        attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
+                    },
+                    new Field
+                    {
+                        name = "BaseValue",
+                        type = new reflection.Type { base_type = BaseType.Obj, index = schema.objects.IndexOf(baseObj) },
+                        id = 3,
+                        offset = 10,
+                        attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } },
+                        optional = true
+                    }
                 }
             };
 
@@ -355,49 +359,49 @@ namespace FlatSharpDelta.Compiler
         {
             Schema schema = context.Schema;
 
-            reflection.Object listDeltaObj = new reflection.Object();
-
-            listDeltaObj.name = baseEnum.name + "ListDelta";
-
-            listDeltaObj.fields = new List<Field>
+            reflection.Object listDeltaObj = new reflection.Object
             {
-                new Field
+                name = baseEnum.name + "ListDelta",
+                fields = new List<Field>
                 {
-                    name = "Operation",
-                    type = new reflection.Type { base_type = BaseType.UByte, index = context.ListOperationIndex },
-                    id = 0,
-                    offset = 4,
-                    attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
-                },
-                new Field
-                {
-                    name = "CurrentIndex",
-                    type = new reflection.Type { base_type = BaseType.Int },
-                    id = 1,
-                    offset = 6,
-                    attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
-                },
-                new Field
-                {
-                    name = "NewIndex",
-                    type = new reflection.Type { base_type = BaseType.Int },
-                    id = 2,
-                    offset = 8,
-                    attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
-                },
-                new Field
-                {
-                    name = "BaseValue",
-                    type = new reflection.Type
+                    new Field
                     {
-                        base_type = baseEnum.IsUnion() ? BaseType.Union : baseEnum.underlying_type.base_type,
-                        index = schema.enums.IndexOf(baseEnum)
+                        name = "Operation",
+                        type = new reflection.Type { base_type = BaseType.UByte, index = context.ListOperationIndex },
+                        id = 0,
+                        offset = 4,
+                        attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
                     },
-                    id = 3,
-                    offset = 10,
-                    attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } },
-                    optional = baseEnum.IsUnion(),
-                    default_integer = baseEnum.IsUnion() ? 0 : baseEnum.values[0].value
+                    new Field
+                    {
+                        name = "CurrentIndex",
+                        type = new reflection.Type { base_type = BaseType.Int },
+                        id = 1,
+                        offset = 6,
+                        attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
+                    },
+                    new Field
+                    {
+                        name = "NewIndex",
+                        type = new reflection.Type { base_type = BaseType.Int },
+                        id = 2,
+                        offset = 8,
+                        attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } }
+                    },
+                    new Field
+                    {
+                        name = "BaseValue",
+                        type = new reflection.Type
+                        {
+                            base_type = baseEnum.IsUnion() ? BaseType.Union : baseEnum.underlying_type.base_type,
+                            index = schema.enums.IndexOf(baseEnum)
+                        },
+                        id = 3,
+                        offset = 10,
+                        attributes = new List<KeyValue> { new KeyValue { key = "fs_setter", value = "Protected" } },
+                        optional = baseEnum.IsUnion(),
+                        default_integer = baseEnum.IsUnion() ? 0 : baseEnum.values[0].value
+                    }
                 }
             };
 
