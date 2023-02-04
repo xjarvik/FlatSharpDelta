@@ -354,9 +354,9 @@ namespace FlatSharpDelta.Compiler
             return (startBracketIndex, endBracketIndex);
         }
 
-        private static string GetTableReaderRegex(reflection.Object obj) => $@"private sealed class tableReader_.+_({String.Join('|', DeserializationOptions.AllWithoutEnumName)})<TInputBuffer>\s*:\s*global::{obj.name}\s*,";
+        private static string GetTableReaderRegex(reflection.Object obj) => $@"class tableReader_.+_({String.Join('|', DeserializationOptions.AllWithoutEnumName)})<TInputBuffer>\s*:\s*global::{obj.name}\s*,";
 
-        private static string GetClassDefinitionRegex(reflection.Object obj) => $@"public partial class {obj.GetNameWithoutNamespace()}\s*:\s*object\s*,\s*IFlatBufferSerializable<{obj.name}>\s*,\s*IFlatBufferSerializable";
+        private static string GetClassDefinitionRegex(reflection.Object obj) => $@"class {obj.GetNameWithoutNamespace()}\s*:\s*object\s*,\s*IFlatBufferSerializable<{obj.name}>\s*,\s*IFlatBufferSerializable";
 
         private static bool TableReaderIsLazy(string source, int tableReaderStart, int tableReaderEnd) =>
             FirstOf(source, DeserializationOptions.All, tableReaderStart, tableReaderEnd) == DeserializationOptions.Lazy;
