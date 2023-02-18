@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>FlatSharpDelta.Compiler</id>
+    <version>$version$</version>
+    <releaseNotes>$releaseNotes$</releaseNotes>
+    <authors>$authors$</authors>
+    <owners>xjarvik</owners>
+    <description>$description$</description>
+    <tags>$tags$</tags>
+    <projectUrl>$repositoryUrl$</projectUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">Apache-2.0</license>
+    <developmentDependency>true</developmentDependency>
+  </metadata>
+  <files>
+    <file src="FlatSharpDelta.Compiler.targets" target="build/FlatSharpDelta.Compiler.targets" />
+    <file src="FlatSharpDelta.Compiler.targets" target="tools/" />
+    
+    <file src="$OutDir$\net6.0\**" target="tools/net6.0" />
+  </files>
+</package>

@@ -20,6 +20,15 @@ namespace FlatSharpDelta.Compiler
         [Option("normalize-field-names", Default = true, HelpText = "Transform snake_case and camelCase field names to PascalCase.")]
         public bool? NormalizeFieldNames { get; set; }
 
+        [Option("nullable-warnings", Default = false, HelpText = "Emit full nullable annotations and enable warnings.")] // fix
+        public bool? NullableWarnings { get; set; }
+
+        [Option("gen-poolable", Hidden = false, Default = false, HelpText = "EXPERIMENTAL: Generate extra code to enable object pooling for allocation reductions.")] // fix
+        public bool? GeneratePoolableObjects { get; set; }
+
+        [Option("unity-assembly-path", HelpText = "Path to assembly (e.g. UnityEngine.dll) which enables Unity support.")] // fix
+        public string UnityAssemblyPath { get; set; }
+
         [Option("debug", Default = false, Hidden = true)]
         public bool DebugMode { get; set; }
     }

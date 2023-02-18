@@ -1,0 +1,19 @@
+﻿<Project>
+  
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>103.0.0</Version>
+    <PackageVersion>$(Version)</PackageVersion>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <Authors>xjarvik</Authors>
+    <Description>Delta encoding for your FlatSharp objects.</Description>
+    <Copyright>2023</Copyright>
+    <RepositoryUrl>https://github.com/xjarvik/FlatSharpDelta</RepositoryUrl>
+    <PackageTags>flatbuffers serialization flatbuffer flatsharp fbs delta deltaencoding deltacompression</PackageTags>
+    <PackageReleaseNotes>Release notes at https://github.com/xjarvik/FlatSharpDelta/releases</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>    
+    <NuspecProperties>version=$(PackageVersion);releaseNotes=$(PackageReleaseNotes);tags=$(PackageTags);repositoryUrl=$(RepositoryUrl);authors=$(Authors);description=$(Description)</NuspecProperties>
+  </PropertyGroup>
+
+</Project>

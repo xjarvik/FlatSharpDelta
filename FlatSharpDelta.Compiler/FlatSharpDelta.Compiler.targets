@@ -1,0 +1,137 @@
+<!--
+    The original file can be found at https://github.com/jamescourtney/FlatSharp/blob/1d98829c8a1a8ed0664ee4f3161c32226b8f0cea/src/FlatSharp.Compiler/FlatSharp.Compiler.targets.
+    The file from FlatSharp is nearly identical, but here we use "FlatSharpDelta" instead of "FlatSharp" for property names and such.
+-->
+<?xml version="1.0" encoding="utf-8" ?>
+<Project>
+
+    <Choose>
+        <When Condition=" '$(MSBuildVersion.Substring(0,2))' >= 16 Or
+                         ('$(MSBuildVersion.Substring(0,2))' == 15 And '$(MSBuildVersion.Substring(3,1))' >= 8) ">
+            <PropertyGroup>
+                <TaskFactory>RoslynCodeTaskFactory</TaskFactory>
+            </PropertyGroup>
+        </When>
+        <Otherwise>
+            <PropertyGroup>
+                <TaskFactory>CodeTaskFactory</TaskFactory>
+            </PropertyGroup>
+        </Otherwise>
+    </Choose>
+
+    <!-- Task to process the FlatSharpDeltaSchema:
+       - Filters out duplicate files.
+       - Transforms the 'IncludePath' metadata property to absolute paths (semi-colon separated). -->
+    <UsingTask TaskName="ProcessFlatSharpDeltaSchema" TaskFactory="$(TaskFactory)" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <Inputs ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+            <IncludeDirectories ParameterType="System.String" Output="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Code Type="Fragment" Language="cs">
+                <![CDATA[
+                IncludeDirectories = string.Empty;
+                if (Inputs == null || Inputs.Length == 0)
+                {
+                    Success = true;
+                    goto End;
+                }
+
+                var errors = new HashSet<string>();
+                var includeDirectories = new HashSet<string>();
+
+                foreach (var item in Inputs)
+                {
+                    var includes = (item.GetMetadata("IncludePath") ?? string.Empty)
+                            .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(include =>
+                            {
+                                if (!Directory.Exists(include))
+                                {
+                                    errors.Add(string.Format("FlatSharpDeltaSchema.IncludePath must only contain existing directories, separated by a semi-colon. '{0}' is not a valid directory.", include));
+                                    return null;
+                                }
+                                
+                                return Path.GetFullPath(include).TrimEnd('\\');
+                            });
+                            
+                    foreach (var i in includes)
+                    {
+                        includeDirectories.Add(i);
+                    }
+                }
+                
+                if (errors.Any())
+                {
+                    foreach (var error in errors)
+                    {
+                        Log.LogError(error);
+                    }
+                    
+                    Success = false;
+                }
+                else
+                {
+                    IncludeDirectories = string.Join(";", includeDirectories);
+                    Success = true;
+                }
+
+                // Empty block to allow jumping to the return statement.
+                End:
+                {
+                }
+]]>
+            </Code>
+        </Task>
+    </UsingTask>
+
+    <!-- Tell Visual Studio that fbs files can result in build changes. 
+       https://github.com/dotnet/project-system/blob/cd275918ef9f181f6efab96715a91db7aabec832/docs/up-to-date-check.md -->
+    <ItemGroup>
+        <UpToDateCheckInput Include="@(FlatSharpDeltaSchema)" />
+    </ItemGroup>
+
+    <Target Name="FlatSharpDeltaFbsCompile" BeforeTargets="ResolveAssemblyReferences" Condition=" '@(FlatSharpDeltaSchema)' != '' ">
+        <PropertyGroup Condition=" '$(FlatSharpNullable)' == '' ">
+            <FlatSharpNullable>false</FlatSharpNullable>
+            <FlatSharpNullable Condition=" '$(Nullable)' == 'enable' ">true</FlatSharpNullable>
+        </PropertyGroup>
+
+        <PropertyGroup Condition=" '$(FlatSharpPoolable)' == '' ">
+            <FlatSharpPoolable>false</FlatSharpPoolable>
+        </PropertyGroup>
+
+
+        <PropertyGroup Condition=" '$(FlatSharpNameNormalization)' == '' ">
+            <FlatSharpNameNormalization>true</FlatSharpNameNormalization>
+        </PropertyGroup>
+
+        <PropertyGroup>
+            <CompilerPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)\..\tools\net6.0\FlatSharpDelta.Compiler.dll'))</CompilerPath>
+        </PropertyGroup>
+
+        <PropertyGroup Condition=" '$(FlatSharpDeltaCompilerPath)' != '' ">
+            <CompilerPath>$(FlatSharpDeltaCompilerPath)</CompilerPath>
+        </PropertyGroup>
+
+        <ProcessFlatSharpDeltaSchema Inputs="@(FlatSharpDeltaSchema)">
+            <Output TaskParameter="IncludeDirectories" PropertyName="Includes" />
+        </ProcessFlatSharpDeltaSchema>
+
+        <Message
+            Text="dotnet $(CompilerPath) --nullable-warnings $(FlatSharpNullable) --normalize-field-names $(FlatSharpNameNormalization) --gen-poolable $(FlatSharpPoolable) --input &quot;@(FlatSharpDeltaSchema)&quot; --includes &quot;$(Includes)&quot; --output $(IntermediateOutputPath)"
+            Importance="high" />
+
+        <Exec
+            Command="dotnet $(CompilerPath) --nullable-warnings $(FlatSharpNullable) --normalize-field-names $(FlatSharpNameNormalization) --gen-poolable $(FlatSharpPoolable) --input &quot;@(FlatSharpDeltaSchema)&quot; --includes &quot;$(Includes)&quot; --output $(IntermediateOutputPath)"
+            CustomErrorRegularExpression=".*" />
+
+        <ItemGroup>
+            <GeneratedFbs Include="$(IntermediateOutputPath)*.generated.cs" />
+            <Compile Include="@(GeneratedFbs)" />
+            <FileWrites Include="@(GeneratedFbs)" />
+        </ItemGroup>
+    </Target>
+</Project>

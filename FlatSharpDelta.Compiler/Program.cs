@@ -38,8 +38,8 @@ namespace FlatSharpDelta.Compiler
                     {
                         InputFiles = GetInputFiles(compilerOptions.Input),
                         OutputDirectory = GetOutputDirectory(compilerOptions.Output),
-                        BaseCompilerFile = compilerOptions.BaseCompiler != null ? GetBaseCompilerFile(compilerOptions.BaseCompiler) : GetIncludedBaseCompilerFile(),
-                        IncludesDirectories = compilerOptions.Includes != null ? GetIncludesDirectories(compilerOptions.Includes) : new DirectoryInfo[0],
+                        BaseCompilerFile = !String.IsNullOrWhiteSpace(compilerOptions.BaseCompiler) ? GetBaseCompilerFile(compilerOptions.BaseCompiler) : GetIncludedBaseCompilerFile(),
+                        IncludesDirectories = !String.IsNullOrWhiteSpace(compilerOptions.Includes) ? GetIncludesDirectories(compilerOptions.Includes) : new DirectoryInfo[0],
                         NormalizeFieldNames = compilerOptions.NormalizeFieldNames.Value
                     };
 
