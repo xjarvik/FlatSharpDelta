@@ -2,10 +2,9 @@
   
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <VersionPrefix>1.0.0</VersionPrefix>
-    <VersionSuffix>beta.1</VersionSuffix>
+    <Version>1.0.0-beta.1</Version>
     <PackageVersion>$(Version)</PackageVersion>
-    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
     <Authors>xjarvik</Authors>
     <Description>Delta encoding for your FlatSharp objects.</Description>
     <Copyright>2023</Copyright>
