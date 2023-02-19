@@ -20,7 +20,7 @@ namespace FlatSharpDelta.Compiler
 {
     public class Program
     {
-        private static string CompilerVersion => typeof(Program).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? "unknown";
+        private static string CompilerVersion => FileVersionInfo.GetVersionInfo(typeof(Program).Assembly.Location).ProductVersion;
         private static string FlatSharpGeneratedFileName => "FlatSharp.generated.cs";
         private static string ModifiedFlatSharpGeneratedFileName => "ModifiedFlatSharp.generated.cs";
         private static string FlatSharpDeltaGeneratedFileName => "FlatSharpDelta.generated.cs";

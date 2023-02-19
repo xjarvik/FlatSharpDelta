@@ -4,10 +4,10 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
-	<AssemblyName>FlatSharpDelta.Compiler</AssemblyName>
+	  <AssemblyName>FlatSharpDelta.Compiler</AssemblyName>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-	<NuspecFile>FlatSharpDelta.Compiler.nuspec</NuspecFile>
-	<NuspecProperties>$(NuspecProperties);OutDir=$(MSBuildThisFileDirectory)\bin\$(Configuration)</NuspecProperties>
+    <NuspecFile>FlatSharpDelta.Compiler.nuspec</NuspecFile>
+    <NuspecProperties>$(NuspecProperties);OutDir=$(MSBuildThisFileDirectory)\bin\$(Configuration)</NuspecProperties>
   </PropertyGroup>
 
   <ItemGroup>

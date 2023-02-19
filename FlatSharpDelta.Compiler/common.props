@@ -2,7 +2,8 @@
   
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>103.0.0</Version>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionSuffix>beta.1</VersionSuffix>
     <PackageVersion>$(Version)</PackageVersion>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <Authors>xjarvik</Authors>
