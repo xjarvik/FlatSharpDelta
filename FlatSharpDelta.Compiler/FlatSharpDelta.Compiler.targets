@@ -1,9 +1,10 @@
-<!--
-    The original file can be found at https://github.com/jamescourtney/FlatSharp/blob/1d98829c8a1a8ed0664ee4f3161c32226b8f0cea/src/FlatSharp.Compiler/FlatSharp.Compiler.targets.
-    The file from FlatSharp is nearly identical, but here we use "FlatSharpDelta" instead of "FlatSharp" for property names and such.
--->
 <?xml version="1.0" encoding="utf-8" ?>
 <Project>
+
+    <!--
+        The original file can be found at https://github.com/jamescourtney/FlatSharp/blob/1d98829c8a1a8ed0664ee4f3161c32226b8f0cea/src/FlatSharp.Compiler/FlatSharp.Compiler.targets.
+        The file from FlatSharp is nearly identical, but here we use "FlatSharpDelta" instead of "FlatSharp" for property names and such.
+    -->
 
     <Choose>
         <When Condition=" '$(MSBuildVersion.Substring(0,2))' >= 16 Or
