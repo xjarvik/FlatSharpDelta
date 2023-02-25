@@ -1,0 +1,25 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    uses: ./.github/workflows/dotnet.yml
+    with:
+      version: ${{ github.ref_name }}
+
+  publish:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+    - name: Publish NuGet packages
+      uses: nuget/setup-nuget@v1
+      with:
+        nuget-api-key: ${{ secrets.NUGET_API_KEY }}
+        nuget-version: 'latest'
+    - run: nuget push **\*.nupkg -Source 'https://api.nuget.org/v3/index.json'

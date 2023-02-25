@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Make sure this file uses LF line endings.
+
 next=0
 for arg in "$@"
 do

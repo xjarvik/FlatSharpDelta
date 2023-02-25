@@ -9,7 +9,7 @@
     <Description>Delta encoding for your FlatSharp objects.</Description>
     <Copyright>2023</Copyright>
     <RepositoryUrl>https://github.com/xjarvik/FlatSharpDelta</RepositoryUrl>
-    <PackageTags>flatbuffers serialization flatbuffer flatsharp fbs delta deltaencoding deltacompression</PackageTags>
+    <PackageTags>flatbuffers serialization flatbuffer flatsharp fbs delta serializer serializers delta-encoding delta-compression</PackageTags>
     <PackageReleaseNotes>Release notes at https://github.com/xjarvik/FlatSharpDelta/releases</PackageReleaseNotes>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>    
