@@ -29,11 +29,11 @@ After installing the compiler with NuGet, you can add your `fbs` files like this
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FlatSharpDelta.Compiler" Version="1.0.1">
+    <PackageReference Include="FlatSharpDelta.Compiler" Version="1.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="FlatSharp.Runtime" Version="7.1.0" />
+    <PackageReference Include="FlatSharp.Runtime" Version="7.1.1" />
   </ItemGroup>
 </Project>
 ```
@@ -79,7 +79,7 @@ playerClient.UpdateReferenceState();
 This package has the same .NET compatibility as FlatSharp. Please see the [FlatSharp wiki page](https://github.com/jamescourtney/FlatSharp/wiki/Compiler) for more information.
 
 ### Compatibility with the FlatSharp compiler
-As FlatSharpDelta makes use of the `FlatSharp.Compiler` package internally, the intention is for FlatSharpDelta to always make use of the latest version of `FlatSharp.Compiler` (`7.1.0` as of this writing). This means you should use the same version for the FlatSharp.Runtime package. As new major (and potentially breaking) versions of FlatSharp are published, it might take a while before the FlatSharpDelta compiler is up to speed with the new version of the FlatSharp compiler.
+As FlatSharpDelta makes use of the `FlatSharp.Compiler` package internally, the intention is for FlatSharpDelta to always make use of the latest version of `FlatSharp.Compiler` (`7.1.1` as of this writing). This means you should use the same version for the FlatSharp.Runtime package. As new major (and potentially breaking) versions of FlatSharp are published, it might take a while before the FlatSharpDelta compiler is up to speed with the new version of the FlatSharp compiler.
 
 ## Noteworthy things
 

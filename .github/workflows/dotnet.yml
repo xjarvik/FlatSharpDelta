@@ -28,7 +28,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore -p:Version=${{ inputs.version || '0.0.1' }}
+      run: dotnet build -c Release --no-restore -p:Version=${{ inputs.version || '0.0.1' }}
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Archive NuGet packages
