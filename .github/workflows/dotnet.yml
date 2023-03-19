@@ -30,7 +30,7 @@ jobs:
     - name: Build
       run: dotnet build -c Release --no-restore -p:Version=${{ inputs.version || '0.0.1' }}
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test -c Release --no-build --verbosity normal
     - name: Archive NuGet packages
       uses: actions/upload-artifact@v3
       with:
