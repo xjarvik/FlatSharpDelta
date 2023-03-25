@@ -46,12 +46,18 @@ namespace FlatSharpDelta.Compiler
 
         public static string WriteCode(Schema schema, FileInfo declarationFile, DirectoryInfo declarationFileRelativeTo)
         {
+            Console.WriteLine("schema file_ident: " + schema.file_ident);
+            Console.WriteLine("schema file_ext: " + schema.file_ext);
+            Console.WriteLine("declarationFile: " + declarationFile.FullName);
+            Console.WriteLine("declarationFileRelativeTo: " + declarationFileRelativeTo.FullName);
+
             string code = String.Empty;
 
             foreach (reflection.Object obj in schema.objects)
             {
                 if (obj.declaration_file != IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName))
                 {
+                    Console.WriteLine("obj " + obj.name + " with declaration file " + obj.declaration_file + " does not match declaration file " + IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName));
                     continue;
                 }
 
@@ -71,6 +77,7 @@ namespace FlatSharpDelta.Compiler
             {
                 if (_enum.declaration_file != IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName))
                 {
+                    Console.WriteLine("enum " + _enum.name + " with declaration file " + _enum.declaration_file + " does not match declaration file " + IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName));
                     continue;
                 }
 

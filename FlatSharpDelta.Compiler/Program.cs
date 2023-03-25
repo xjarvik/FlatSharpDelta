@@ -50,6 +50,13 @@ namespace FlatSharpDelta.Compiler
             {
                 try
                 {
+                    Console.WriteLine("ExecutingDirectory: " + ExecutingDirectory.FullName);
+                    Console.WriteLine("compilerOptions.Input: " + compilerOptions.Input);
+                    Console.WriteLine("compilerOptions.Ouput: " + compilerOptions.Output);
+                    Console.WriteLine("compilerOptions.BaseCompiler: " + compilerOptions.BaseCompiler);
+                    Console.WriteLine("compilerOptions.Includes: " + compilerOptions.Includes);
+                    Console.WriteLine("compilerOptions.NormalizeFieldNames: " + compilerOptions.NormalizeFieldNames);
+
                     CompilerStartInfo compilerStartInfo = new CompilerStartInfo
                     {
                         InputFiles = GetInputFiles(compilerOptions.Input),
@@ -263,6 +270,8 @@ namespace FlatSharpDelta.Compiler
             string tempDirPath = Path.Combine(Path.GetTempPath(), $"flatsharpdeltacompiler_temp_{Guid.NewGuid():N}");
             DirectoryInfo tempDir = Directory.CreateDirectory(tempDirPath);
 
+            Console.WriteLine("tempDirPath: " + tempDirPath);
+
             try
             {
                 ConcurrentDictionary<FileInfo, Guid> inputFileGuids = new ConcurrentDictionary<FileInfo, Guid>();
@@ -316,6 +325,23 @@ namespace FlatSharpDelta.Compiler
                     });
                 });
 
+                Console.WriteLine("----------- inputFileGuids -----------");
+                foreach (KeyValuePair<FileInfo, Guid> kvp in inputFileGuids)
+                {
+                    Console.WriteLine(kvp.Key.FullName + ", " + kvp.Value.ToString("N"));
+                }
+                Console.WriteLine("--------------------------------------");
+
+                Console.WriteLine("----------- originalSchemas ----------");
+                foreach (KeyValuePair<FileInfo, Schema> kvp in originalSchemas)
+                {
+                    foreach (SchemaFile fbsFile in kvp.Value.fbs_files)
+                    {
+                        Console.WriteLine(kvp.Key.FullName + ", " + fbsFile.filename);
+                    }
+                }
+                Console.WriteLine("--------------------------------------");
+
                 if (validationErrors.Count > 0)
                 {
                     throw new FlatSharpDeltaException
@@ -332,6 +358,13 @@ namespace FlatSharpDelta.Compiler
                 File.WriteAllBytes(builtInTypesSchemaBfbsFilePath, builtInTypesSchemaBfbs);
 
                 schemaWithDeltaTypesBfbsFiles.Add(new FileInfo(builtInTypesSchemaBfbsFilePath));
+
+                Console.WriteLine("----------- schemaWithDeltaTypesBfbsFiles ----------");
+                foreach (FileInfo bfbsFile in schemaWithDeltaTypesBfbsFiles)
+                {
+                    Console.WriteLine(bfbsFile.FullName);
+                }
+                Console.WriteLine("--------------------------------------");
 
                 GenerateFlatSharpFile(startInfo.BaseCompilerFile, CopyFakeFlatc(tempDir), schemaWithDeltaTypesBfbsFiles, tempDir);
                 string generatedFlatSharpCode = File.ReadAllText(Path.Combine(tempDirPath, FlatSharpGeneratedFileName));
@@ -395,6 +428,8 @@ namespace FlatSharpDelta.Compiler
 
         static void GenerateFlatSharpFile(FileInfo baseCompilerFile, FileInfo fakeFlatcFile, IEnumerable<FileInfo> bfbsFiles, DirectoryInfo outputDirectory)
         {
+            Console.WriteLine("fakeFlatcFile: " + fakeFlatcFile.FullName);
+
             int exitCode = RunBaseCompiler(baseCompilerFile.FullName, new string[]
             {
                 "-i", String.Join(';', bfbsFiles.Select(f => f.FullName)),
