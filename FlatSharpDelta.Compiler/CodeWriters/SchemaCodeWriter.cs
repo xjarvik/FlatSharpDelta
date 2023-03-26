@@ -50,7 +50,14 @@ namespace FlatSharpDelta.Compiler
 
             foreach (reflection.Object obj in schema.objects)
             {
-                if (obj.declaration_file != IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName))
+                bool declarationFilePathsAreEqual = IDeclarationFilePropertyExtensions.DeclarationFilePathsAreEqual(
+                    obj.declaration_file,
+                    declarationFileRelativeTo.FullName,
+                    IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName),
+                    declarationFileRelativeTo.FullName
+                );
+
+                if (!declarationFilePathsAreEqual)
                 {
                     continue;
                 }
@@ -69,7 +76,14 @@ namespace FlatSharpDelta.Compiler
 
             foreach (reflection.Enum _enum in schema.enums)
             {
-                if (_enum.declaration_file != IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName))
+                bool declarationFilePathsAreEqual = IDeclarationFilePropertyExtensions.DeclarationFilePathsAreEqual(
+                    _enum.declaration_file,
+                    declarationFileRelativeTo.FullName,
+                    IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, declarationFileRelativeTo.FullName),
+                    declarationFileRelativeTo.FullName
+                );
+
+                if (!declarationFilePathsAreEqual)
                 {
                     continue;
                 }

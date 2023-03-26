@@ -301,7 +301,15 @@ namespace FlatSharpDelta.Compiler
                         // FlatSharp only generates code for an object if the declaration_file value equals the name of the file in which the object is declared.
                         schemaWithDeltaTypes.ForEachDeclarationFileProperty(property =>
                         {
-                            FileInfo declarationFile = startInfo.InputFiles.Where(f => IDeclarationFilePropertyExtensions.GetDeclarationFileString(f.FullName, ExecutingDirectory.FullName) == property.declaration_file).FirstOrDefault();
+                            FileInfo declarationFile = startInfo.InputFiles.Where(f =>
+                                IDeclarationFilePropertyExtensions.DeclarationFilePathsAreEqual(
+                                    IDeclarationFilePropertyExtensions.GetDeclarationFileString(f.FullName, ExecutingDirectory.FullName),
+                                    ExecutingDirectory.FullName,
+                                    property.declaration_file,
+                                    ExecutingDirectory.FullName
+                                )
+                            )
+                            .FirstOrDefault();
 
                             if (declarationFile != null)
                             {

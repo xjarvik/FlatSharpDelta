@@ -46,7 +46,14 @@ namespace FlatSharpDelta.Compiler
 
                 foreach (reflection.Object obj in schema.objects)
                 {
-                    if (obj.declaration_file == IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, Program.ExecutingDirectory.FullName) && obj.IsReferenceType())
+                    bool declarationFilePathsAreEqual = IDeclarationFilePropertyExtensions.DeclarationFilePathsAreEqual(
+                        obj.declaration_file,
+                        Program.ExecutingDirectory.FullName,
+                        IDeclarationFilePropertyExtensions.GetDeclarationFileString(declarationFile.FullName, Program.ExecutingDirectory.FullName),
+                        Program.ExecutingDirectory.FullName
+                    );
+
+                    if (declarationFilePathsAreEqual && obj.IsReferenceType())
                     {
                         generatedCode = ModifyListTypesInReferenceType(generatedCode, schema, obj);
                     }
