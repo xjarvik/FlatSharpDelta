@@ -6,7 +6,7 @@ At its core, FlatSharpDelta adds the following 3 methods to your FlatSharp objec
 - `GetDelta`: Returns a delta object containing the changes that have been made to the object since `UpdateReferenceState` was last called, or since the object was created.
 			The delta object can be serialized just like any other FlatSharp object.
 			The delta object is optimized to contain only the data necessary to construct the current object state when serialized.
-			The method scans through all properties (including nested objects) and makes sure to only include the properties that differ from the reference state.
+			The method scans through all fields (including nested objects) and makes sure to only include the fields that differ from the reference state.
 			FlatSharpDelta also tracks all changes made to lists, and will remove any redundant information (such as adding and then removing an item).
 			If no changes have been made to the object, this method returns `null`.<br/><br/>Note that this method always returns the same object instance, and that it may change as you make changes to your object.
 			This means that the delta object is only valid until further changes are made to the object.
@@ -29,7 +29,7 @@ After installing the compiler with NuGet, you can add your `fbs` files like this
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FlatSharpDelta.Compiler" Version="1.0.3">
+    <PackageReference Include="FlatSharpDelta.Compiler" Version="1.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -83,6 +83,7 @@ As FlatSharpDelta makes use of the `FlatSharp.Compiler` package internally, the 
 
 ## Noteworthy things
 
+- If you set a field to a new object reference, that field is considered to be "changed". This means that the specific field and everything it encompasses will be included when you call `GetDelta`. I.e. FlatSharpDelta will not perform deep equality checks for fields that have been set to a new object reference.
 - Because this library needs to keep track of the changes you make to lists/vectors, all types defined in your fbs files will generate a custom list class. A table called `Player` will generate a `PlayerList` class, for example. All vector fields you define in your fbs files will use this custom list class of the corresponding type. This also means that the "IList" vector type is the only supported vector type (other vector types such as "Memory" are not supported). The custom list class implements `IList<T>`.
 - The custom list types have a `Move` method. You should use this method instead of removing and then adding an item to the list. This can greatly reduce the amount of data from serializing the delta object returned from `GetDelta`.
 - You should avoid calling `UpdateReferenceState` on nested objects, as doing so will screw up the reference state of the root object. In general, you should only ever need to call `UpdateReferenceState` on the root object.
