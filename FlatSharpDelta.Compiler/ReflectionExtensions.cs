@@ -103,9 +103,9 @@ namespace FlatSharpDelta.Compiler
         public static bool DeclarationFilePathsAreEqual(string path1, string path1Base, string path2, string path2Base)
         {
             path1 = path1.Replace("\\", "/").Replace("/:/", "/").TrimStart('/');
-            path1Base = path1Base.Replace("\\", "/").Replace("/:/", "/").TrimStart('/');
+            path1Base = path1Base.Replace("\\", "/").Replace("/:/", "/");
             path2 = path2.Replace("\\", "/").Replace("/:/", "/").TrimStart('/');
-            path2Base = path2Base.Replace("\\", "/").Replace("/:/", "/").TrimStart('/');
+            path2Base = path2Base.Replace("\\", "/").Replace("/:/", "/");
 
             return Path.GetFullPath(path1, path1Base) == Path.GetFullPath(path2, path2Base);
         }
